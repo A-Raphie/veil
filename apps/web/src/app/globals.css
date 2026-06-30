@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 8 12 20;
+  --foreground: 226 232 240;
+  --card: 15 23 36;
+  --border: 38 50 68;
+  --muted: 100 116 139;
+  --primary: 42 154 124;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  min-height: 100vh;
+}
+
+body {
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--border));
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border bg-[rgb(var(--card))] p-5;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-500;
+  }
+  .btn-secondary {
+    @apply btn border bg-transparent hover:bg-white/5;
+  }
+  .input {
+    @apply w-full rounded-lg border bg-black/20 px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-brand-500;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+}
+
+/* Monospace addresses truncate cleanly */
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
