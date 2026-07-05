@@ -14,8 +14,9 @@
 import Link from "next/link";
 import { ArrowRight, Droplets, Lock, Sparkles, ExternalLink } from "lucide-react";
 import { useReadContract } from "wagmi";
-import { NETWORKS, registryAbi, wrapperAbi } from "@wrapper-registry/contracts";
+import { NETWORKS, wrapperAbi } from "@wrapper-registry/contracts";
 import { useActiveNetwork } from "@/lib/use-active-network";
+import { useRegistryPairs } from "@/lib/registry";
 import { shortAddr, explorerAddressUrl } from "@/lib/format";
 
 export function Hero() {
@@ -106,14 +107,9 @@ function CiphertextRain() {
  */
 function HeroPanel() {
   const { network } = useActiveNetwork();
-  const registry = NETWORKS[network].registry;
   const firstPair = NETWORKS[network].pairs[0];
 
-  const { data: pairsLength } = useReadContract({
-    address: registry,
-    abi: registryAbi,
-    functionName: "getTokenConfidentialTokenPairsLength",
-  });
+  const { data: pairs } = useRegistryPairs(network);
 
   const { data: encryptedSupply } = useReadContract({
     address: firstPair?.confidentialToken,
@@ -148,7 +144,7 @@ function HeroPanel() {
         <div className="rounded-lg border border-white/5 bg-black/40 p-4">
           <p className="text-xs text-slate-500">Pairs registered</p>
           <p className="mono mt-0.5 text-3xl font-semibold text-brand-300">
-            {pairsLength !== undefined ? (pairsLength as bigint).toString() : "…"}
+            {pairs?.length ?? "…"}
           </p>
         </div>
 
