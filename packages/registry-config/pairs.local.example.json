@@ -1,12 +1,3 @@
 {
-  "pairs": [
-    {
-      "symbol": "MYTKN",
-      "name": "My Confidential Token (dev)",
-      "decimals": 6,
-      "confidentialToken": "0x0000000000000000000000000000000000000001",
-      "underlying": "0x0000000000000000000000000000000000000002",
-      "faucetable": false
-    }
-  ]
+  "pairs": []
 }

@@ -27,7 +27,7 @@ Built on **Zama FHEVM** with the `@zama-fhe/sdk` v3 React SDK. Supports **Sepoli
 | Feature | Route | What it does |
 |---|---|---|
 | **Registry browser** | `/` | Reads the live on-chain Wrappers Registry and renders every ERC-20 ↔ ERC-7984 pair with full metadata + addresses. Merges any local dev pairs. |
-| **Sepolia faucet** | `/faucet` | Mints the 7 official `cTokenMock` underlying tokens (1,000,000 units/call) with per-token balance + tx status. |
+| **Sepolia faucet** | `/faucet` | Mints the 8 official `cTokenMock` underlying tokens (1,000,000 units/call) with per-token balance + tx status. |
 | **Wrap & unwrap** | `/wrap` | Wraps ERC-20 → ERC-7984 (auto-approves) and unwraps back — the SDK orchestrates the on-chain two-step (request → public decrypt → finalize) in one click. Live balance panels for both sides. |
 | **Decrypt any balance** | `/decrypt` | Decrypts the connected wallet's balance for **any** ERC-7984 token via a one-time EIP-712 permit. Paste-an-address or pick from the registry; input is syntactically validated. |
 
@@ -162,7 +162,7 @@ pnpm add-pair     # add a custom ERC-20 ↔ ERC-7984 pair (see above)
 
 | Network | Chain ID | Registry | Faucet |
 |---|---|---|---|
-| **Sepolia** | 11155111 | `0x2f0750Bbb0A246059d80e94c454586a7F27a128e` | ✅ 7 cTokenMocks |
+| **Sepolia** | 11155111 | `0x2f0750Bbb0A246059d80e94c454586a7F27a128e` | ✅ 8 cTokenMocks |
 | **Ethereum mainnet** | 1 | `0xeb5015fF021DB115aCe010f23F55C2591059bBA0` | — |
 
 Canonical addresses live in `packages/contracts/src/addresses.ts`.

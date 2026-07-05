@@ -103,13 +103,14 @@ export function useRegistryPairs(network: NetworkKey) {
           for (const p of pairs) {
             const key = normalizeAddress(p.confidentialTokenAddress);
             const meta = fallback.get(key);
+            if (!meta) continue;
             out.push({
-              symbol: meta?.symbol ?? "UNKNOWN",
-              name: meta?.name ?? "Confidential Token",
-              decimals: meta?.decimals ?? 6,
+              symbol: meta.symbol,
+              name: meta.name,
+              decimals: meta.decimals,
               confidentialToken: p.confidentialTokenAddress,
               underlying: p.tokenAddress,
-              faucetable: meta?.faucetable ?? false,
+              faucetable: meta.faucetable,
               source: "registry",
               isValid: p.isValid,
             });
