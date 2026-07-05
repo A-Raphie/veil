@@ -203,7 +203,7 @@ function DecryptCard({ token }: { token: Address }) {
           {error && (
             <p className="mt-2 text-xs text-rose-300">
               {humanizeError(error)}
-              {!error.message?.includes("permit") && (
+              {!/permit|network|fetch|timeout|http/i.test(error.message ?? "") && (
                 <span className="mt-1 block text-slate-400">
                   This may not be a valid ERC-7984 wrapper, or you have no balance of it.
                 </span>

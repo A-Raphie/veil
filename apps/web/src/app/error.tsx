@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { Alert } from "@/components/alert";
+import { humanizeError } from "@/lib/errors";
 
 export default function ErrorBoundary({
   error,
@@ -24,7 +25,7 @@ export default function ErrorBoundary({
     <div className="mx-auto max-w-xl py-16">
       <Alert variant="error" title="Something went wrong">
         <p>
-          {error.message || "An unexpected error occurred."}
+          {humanizeError(error)}
           {error.digest && (
             <>
               {" "}
