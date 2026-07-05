@@ -50,7 +50,11 @@ export function ToastViewport() {
   const toasts = useToasts();
   const dismiss = useCallback((id: number) => dismissToast(id), []);
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2">
+    <div
+      aria-live="polite"
+      aria-atomic="false"
+      className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}

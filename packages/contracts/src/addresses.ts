@@ -116,19 +116,80 @@ export const NETWORKS: Record<NetworkKey, NetworkAddresses> = {
     chainId: MAINNET_CHAIN_ID,
     explorer: "https://etherscan.io",
     registry: "0xeb5015fF021DB115aCe010f23F55C2591059bBA0",
-    // Note: mainnet confidential tokens (cUSDC, cUSDT, ...) map to REAL underlying
-    // tokens (USDC, USDT, WETH, ...) which are NOT faucetable. We list the registry-
-    // known pairs here; the dApp reads the live registry as primary source of truth
-    // and merges these as fallback metadata. Underlying addresses are resolved
-    // dynamically from the registry's getTokenAddress(confidentialToken) to avoid
-    // hardcoding real mainnet token addresses that may change.
+    // All 9 official mainnet pairs, addresses verified against
+    // docs.zama.org/protocol/protocol-apps/addresses/mainnet/ethereum
+    // Decimals are NOT published by the docs; standard known values used.
     pairs: [
       {
         symbol: "USDC",
         name: "Confidential USDC",
         decimals: 6,
-        confidentialToken: "0x3a85b0d2c1b414c7a5e6f3c9d1e8f7a6b5c4d3e2",
+        confidentialToken: "0xe978F22157048E5DB8E5d07971376e86671672B2",
         underlying: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        faucetable: false,
+      },
+      {
+        symbol: "USDT",
+        name: "Confidential USDT",
+        decimals: 6,
+        confidentialToken: "0xAe0207C757Aa2B4019Ad96edD0092ddc63EF0c50",
+        underlying: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        faucetable: false,
+      },
+      {
+        symbol: "WETH",
+        name: "Confidential WETH",
+        decimals: 18,
+        confidentialToken: "0xda9396b82634Ea99243cE51258B6A5Ae512D4893",
+        underlying: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        faucetable: false,
+      },
+      {
+        symbol: "BRON",
+        name: "Confidential BRON",
+        decimals: 18,
+        confidentialToken: "0x85dE671c3bec1aDeD752c3Cea943521181C826bc",
+        underlying: "0xBA2C598E11eD093079cC324FCa5BbbA99F616E83",
+        faucetable: false,
+      },
+      {
+        symbol: "ZAMA",
+        name: "Confidential ZAMA",
+        decimals: 18,
+        confidentialToken: "0x80CB147Fd86dC6dEe3Eee7e4Cee33d1397d98071",
+        underlying: "0xA12CC123ba206d4031D1c7f6223D1C2Ec249f4f3",
+        faucetable: false,
+      },
+      {
+        symbol: "tGBP",
+        name: "Confidential tGBP",
+        decimals: 18,
+        confidentialToken: "0xa873750ccBafD5ec7Dd13bfD5237d7129832eDD9",
+        underlying: "0x27f6c8289550fce67f6b50bed1f519966afe5287",
+        faucetable: false,
+      },
+      {
+        symbol: "XAUt",
+        name: "Confidential XAUt",
+        decimals: 18,
+        confidentialToken: "0x73cc9aF9d6BEFdb3c3fAf8a5E8c05Cb95FdaEEf1",
+        underlying: "0x68749665FF8D2d112Fa859AA293F07A622782F38",
+        faucetable: false,
+      },
+      {
+        symbol: "bbqTGBP",
+        name: "Confidential bbqTGBP",
+        decimals: 18,
+        confidentialToken: "0xBA4cFF6ED6F7Cb2A58776dECa4E984b498446762",
+        underlying: "0xbeeffABcd0dB09589Dd21854aa760C52aB4bf04F",
+        faucetable: false,
+      },
+      {
+        symbol: "steakcUSDC",
+        name: "Confidential steakcUSDC",
+        decimals: 6,
+        confidentialToken: "0x66Bf74E96900D1a19c7070D939D124f2F565C458",
+        underlying: "0xbEEF00A59B577423653A1526c7009bdE103F542B",
         faucetable: false,
       },
     ],

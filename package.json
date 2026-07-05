@@ -1,17 +1,18 @@
 {
-  "name": "wrapper-registry-dapp",
+  "name": "veil",
   "private": true,
   "version": "0.1.0",
-  "description": "Confidential Wrapper Registry dApp — browse, wrap, unwrap, and decrypt ERC-7984 confidential tokens on Zama FHEVM.",
+  "description": "Veil — confidential wrapper registry: browse, wrap, unwrap, and decrypt ERC-7984 confidential tokens on Zama FHEVM.",
   "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "start": "pnpm --filter web start",
-    "lint": "pnpm --filter web lint",
-    "typecheck": "pnpm -r typecheck"
+    "dev": "pnpm --filter veil-web dev",
+    "build": "pnpm --filter veil-web build",
+    "start": "pnpm --filter veil-web start",
+    "lint": "pnpm --filter veil-web lint",
+    "typecheck": "pnpm -r typecheck",
+    "add-pair": "node packages/registry-config/scripts/add-pair.cjs"
   }
 }

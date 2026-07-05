@@ -1,32 +1,37 @@
-# Confidential Wrapper Registry
+# Veil
 
-A production-ready dApp that turns Zama's on-chain **Confidential Wrappers Registry**
-into a usable product: browse every official ERC-20 ↔ ERC-7984 wrapper pair, claim
-official test tokens from the faucet, wrap/unwrap, and decrypt any ERC-7984 balance.
+> **Encrypted by default. Yours to reveal.**
+>
+> Veil is a production-ready dApp that turns Zama's on-chain **Confidential Wrappers
+> Registry** into a usable product: browse every official ERC-20 ↔ ERC-7984 wrapper
+> pair, claim official test tokens from the faucet, wrap/unwrap, and decrypt any
+> ERC-7984 balance.
 
-Built on **Zama FHEVM** using the `@zama-fhe/sdk` v3 React SDK. Supports
-**Sepolia** (the judging network) and **Ethereum mainnet**.
+Built on **Zama FHEVM** with the `@zama-fhe/sdk` v3 React SDK. Supports **Sepolia**
+(the judging network) and **Ethereum mainnet**.
 
 ---
 
 ## Live demo
 
-- **App:** _<add your deployed URL here, e.g. https://wrapper-registry.vercel.app>_
-- **Video pitch:** _<add your X/YouTube/Loom link here>_
+- **App:** https://veil-registry.vercel.app
+- **Video pitch:** _<add your X/YouTube/Loom link — to be added>_
 - **Networks:** Sepolia (chain 11155111) and Ethereum mainnet (chain 1)
 
-> The bounty requires the project name **not** contain "Zama" — it doesn't.
+> The bounty rules forbid "Zama" in the project name — Veil complies.
 
 ---
 
 ## Features
 
-| Feature | What it does |
-|---|---|
-| **Registry browser** (`/`) | Reads the live on-chain Wrappers Registry and renders every ERC-20 ↔ ERC-7984 pair with symbol, name, decimals, and both contract addresses. Merges any local dev pairs. |
-| **Sepolia faucet** (`/faucet`) | Mints the 7 official `cTokenMock` underlying tokens (1,000,000 units/call) directly into your wallet. |
-| **Wrap & unwrap** (`/wrap`) | Wraps underlying ERC-20 → confidential ERC-7984 (auto-approves) and unwraps back — the SDK orchestrates the on-chain two-step (request → public decrypt → finalize) in one click. |
-| **Decrypt any balance** (`/decrypt`) | Decrypts the connected wallet's balance for **any** ERC-7984 token — registry or not — via a one-time EIP-712 "permit" signature (paste-an-address or pick from the registry). |
+| Feature | Route | What it does |
+|---|---|---|
+| **Registry browser** | `/` | Reads the live on-chain Wrappers Registry and renders every ERC-20 ↔ ERC-7984 pair with full metadata + addresses. Merges any local dev pairs. |
+| **Sepolia faucet** | `/faucet` | Mints the 7 official `cTokenMock` underlying tokens (1,000,000 units/call) with per-token balance + tx status. |
+| **Wrap & unwrap** | `/wrap` | Wraps ERC-20 → ERC-7984 (auto-approves) and unwraps back — the SDK orchestrates the on-chain two-step (request → public decrypt → finalize) in one click. Live balance panels for both sides. |
+| **Decrypt any balance** | `/decrypt` | Decrypts the connected wallet's balance for **any** ERC-7984 token via a one-time EIP-712 permit. Paste-an-address or pick from the registry; input is syntactically validated. |
+
+Every transaction surfaces pending → success (with explorer link) → error states inline, plus a toast system.
 
 ---
 
@@ -34,122 +39,92 @@ Built on **Zama FHEVM** using the `@zama-fhe/sdk` v3 React SDK. Supports
 
 Per the bounty spec, the registry is sourced as a **hybrid**:
 
-1. **Primary — on-chain registry.** The app reads
-   `getTokenConfidentialTokenPairs()` from the live
-   [Confidential Wrappers Registry](https://docs.zama.org/protocol/protocol-apps/confidential-tokens/wrapper-registry)
-   contract. This is the source of truth — new pairs registered by the Protocol DAO
-   appear automatically with no app redeploy.
-2. **Secondary — local config.** Custom/dev-only pairs (e.g. a wrapper you deployed
-   yourself) can be declared in `packages/registry-config/pairs.local.json`. On a
-   collision, the on-chain registry wins.
-
-This keeps the official registry authoritative while still letting developers extend
-the app for their own wrappers without waiting on the DAO.
+1. **Primary — on-chain registry.** The app reads `getTokenConfidentialTokenPairs()`
+   from the live
+   [Confidential Wrappers Registry](https://docs.zama.org/protocol/protocol-apps/confidential-tokens/wrapper-registry).
+   New pairs registered by the Protocol DAO appear automatically — no redeploy.
+2. **Secondary — local config.** Custom/dev-only pairs (e.g. a wrapper you deployed)
+   live in `packages/registry-config/pairs.local.json`. On collision, the on-chain
+   registry wins.
 
 ---
 
 ## Adding a new ERC-20 ↔ ERC-7984 pair
 
-The on-chain registry is read-only for non-DAO accounts (`registerConfidentialToken`
-is owner-gated). To surface a pair **you** control (a wrapper you deployed, or a local
-anvil pair), add it via the local config:
+The on-chain registry is read-only for non-DAO accounts. To surface a pair **you**
+control, use the included CLI:
 
-1. **Copy the example config:**
+```bash
+pnpm add-pair
+# or non-interactive:
+pnpm add-pair \
+  --symbol MYTKN \
+  --confidential 0xYOUR_ERC7984 \
+  --underlying 0xYOUR_ERC20 \
+  --name "My Confidential Token" \
+  --decimals 6 \
+  --faucetable
+```
 
-   ```bash
-   cp packages/registry-config/pairs.local.example.json \
-      packages/registry-config/pairs.local.json
-   ```
+This writes a validated entry to `pairs.local.json`. Run `pnpm dev` and the pair
+appears in the registry browser with a `local` badge; wrap/unwrap/decrypt work
+against it exactly like any official pair. See `pnpm add-pair --help` for all flags.
 
-2. **Add an entry** to `pairs.local.json` (validated by `@wrapper-registry/registry-config`):
+The config is validated at startup (`validateLocalConfig`): bad addresses, duplicate
+wrappers, and out-of-range decimals throw `LocalConfigError` with the offending
+entry index, so misconfigurations fail loudly.
 
-   ```jsonc
-   {
-     "pairs": [
-       {
-         "symbol": "MYTKN",                         // stable key
-         "name": "My Confidential Token (dev)",     // display name
-         "decimals": 6,                             // underlying ERC-20 decimals (≤6 for the euint64 balance)
-         "confidentialToken": "0x…yourERC7984",     // the wrapper contract
-         "underlying": "0x…yourERC20",              // the cleartext ERC-20
-         "faucetable": false                        // true only if the underlying has a public mint()
-       }
-     ]
-   }
-   ```
-
-3. **Point the import** at your local file. In `apps/web/src/lib/registry.ts`:
-
-   ```ts
-   // was: import localConfigRaw from "@wrapper-registry/registry-config/example";
-   import localConfigRaw from "@wrapper-registry/registry-config/local";
-   ```
-
-   then add the `"./local": "./pairs.local.json"` export to
-   `packages/registry-config/package.json` (mirroring the existing `"./example"` entry).
-
-4. **Redeploy.** The pair now shows up in the registry browser with a `local` badge,
-   and wrap/unwrap/decrypt work against it just like any official pair.
-
-The config is **validated at startup** (`validateLocalConfig`): bad addresses,
-duplicate wrappers, and out-of-range decimals throw `LocalConfigError` with the
-offending entry index, so misconfigurations fail loudly rather than silently.
+> Manual alternative: copy `pairs.local.example.json` → `pairs.local.json` and edit
+> by hand. Both paths are equivalent; the CLI just removes the toil.
 
 ---
 
 ## Tech stack
 
-- **Next.js 15** (App Router) + React 18 + TypeScript
+- **Next.js 15** (App Router) + React 18 + TypeScript (strict)
 - **wagmi v3** + **viem v2** for wallet + EVM
-- **@zama-fhe/sdk** + **@zama-fhe/react-sdk** v3.2.0 for FHE (shield/unshield, EIP-712 permit decryption)
-- **Tailwind CSS** + **shadcn-style** components
+- **@zama-fhe/sdk** + **@zama-fhe/react-sdk** v3.2.0 (shield/unshield, EIP-712 permit decryption)
+- **Tailwind CSS** with a custom design-token system
 - **pnpm** workspace monorepo
 
 ### Monorepo layout
 
 ```
-wrapper-registry-dapp/
+veil/
 ├── apps/web/                     # Next.js dApp
 │   ├── src/app/                  # routes: /, /faucet, /wrap, /decrypt, /api/relayer/[chainId]
-│   ├── src/components/           # nav, wallet, network badge, toasts, copy
-│   ├── src/lib/                  # registry reader, format, errors, active-network
-│   ├── src/config/networks.ts    # wagmi + Zama SDK config (client-only assembly)
+│   ├── src/components/           # hero, nav, wallet, tx-status, alert, skeleton, toast
+│   ├── src/lib/                  # registry reader, format, errors, address validation
+│   ├── src/config/networks.ts    # wagmi + Zama SDK config (client-only)
+│   ├── public/                   # favicon.svg, og-image.png
 │   └── next.config.mjs           # COOP/COEP headers (required for FHE WASM)
 ├── packages/contracts/           # ABIs + canonical Sepolia/mainnet addresses
-└── packages/registry-config/     # typed local-config schema + validation
+└── packages/registry-config/     # typed local-config schema + validation + add-pair CLI
 ```
 
 ---
 
 ## Configuration
 
-### 1. Relayer API key (required)
+### 1. Relayer API key (MAINNET ONLY — not needed for Sepolia)
 
-The Zama browser relayer requires an `x-api-key` header. To keep the key out of the
-browser, the app proxies relayer calls through a server route
-(`/api/relayer/[chainId]`) that injects the key from the environment.
+The **Sepolia testnet relayer is open** (`https://relayer.testnet.zama.org/v2`, no
+key required, verified empirically), so the entire bounty-judging flow works with
+**zero configuration**. Veil points the SDK straight at the public Sepolia host.
 
-- Obtain a key from Zama (see the [authentication guide](https://docs.zama.org/protocol/sdk/guides/authentication)).
-- Copy `.env.example` → `.env.local` in `apps/web/` and set:
+Only **mainnet** decryption requires a key (the mainnet relayer gates every request
+behind `x-api-key`). Veil routes mainnet through a server-side proxy
+(`/api/relayer/1`) so the key stays off the client:
 
-  ```bash
-  RELAYER_API_KEY=your_key_here
-  ```
+- Request a key from Zama ([reviewed form](https://forms.gle/jq84zEek1oiv3kBz9)).
+- Copy `.env.example` → `.env.local` in `apps/web/` and set `RELAYER_API_KEY`.
+- (Optional) Set `NEXT_PUBLIC_SITE_URL` to your deployed URL for correct OG metadata.
 
 ### 2. Cross-origin isolation (already configured)
 
-FHE WASM runs in a Web Worker and needs `SharedArrayBuffer`, which requires
-cross-origin isolation headers. These are set in `next.config.mjs` (`headers()`):
-
-```
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
-```
-
-> **Note:** `require-corp` means cross-origin resources (some wallet popups, CDN
-> fonts) must send `Cross-Origin-Resource-Policy: cross-origin` or be loaded with
-> `crossorigin="anonymous"`. If a third-party wallet iframe breaks, switch the
-> embedder policy to `credentialless` as a fallback.
+FHE WASM runs in a Web Worker and needs `SharedArrayBuffer`, which requires COOP/COEP
+headers — set in `next.config.mjs`. If a third-party wallet iframe ever breaks,
+switch the embedder policy to `credentialless` as a fallback.
 
 ---
 
@@ -158,14 +133,7 @@ Cross-Origin-Embedder-Policy: require-corp
 **Prerequisites:** Node ≥ 22, pnpm ≥ 10.
 
 ```bash
-# 1. Install
 pnpm install
-
-# 2. Configure
-cp .env.example apps/web/.env.local
-# edit apps/web/.env.local → set RELAYER_API_KEY
-
-# 3. Run
 pnpm dev          # http://localhost:3000
 ```
 
@@ -175,6 +143,7 @@ Other scripts:
 pnpm build        # production build
 pnpm start        # serve the production build
 pnpm typecheck    # tsc --noEmit across all packages
+pnpm add-pair     # add a custom ERC-20 ↔ ERC-7984 pair (see above)
 ```
 
 ---
@@ -182,10 +151,10 @@ pnpm typecheck    # tsc --noEmit across all packages
 ## Deployment (Vercel)
 
 1. Push the repo to GitHub.
-2. Import into Vercel — set the root to `apps/web` (or use the monorepo root; the
-   `web` workspace is auto-detected).
-3. Add the environment variable `RELAYER_API_KEY`.
-4. Deploy. The `next.config.mjs` COOP/COEP headers apply automatically.
+2. Import into Vercel — the `veil-web` workspace is auto-detected.
+3. Set `NEXT_PUBLIC_SITE_URL` to your deployed URL (for OG metadata).
+4. (Mainnet only) Set `RELAYER_API_KEY`.
+5. Deploy. COOP/COEP headers apply automatically via `next.config.mjs`.
 
 ---
 

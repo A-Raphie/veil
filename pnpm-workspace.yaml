@@ -1,9 +1,14 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# pnpm 11.1.2: `allowBuilds` is the canonical build-script approval store
+# (written by `pnpm approve-builds`). Without it, pnpm exits 1 with
+# ERR_PNPM_IGNORED_BUILDS in CI (Vercel). These native builds are required:
+#   keccak        — viem/secp256k1 cryptography
+#   sharp         — Next.js image optimization
+#   unrs-resolver — module resolution
 allowBuilds:
-  bufferutil: set this to true or false
-  keccak: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
-  utf-8-validate: set this to true or false
+  keccak: true
+  sharp: true
+  unrs-resolver: true

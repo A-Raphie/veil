@@ -116,8 +116,10 @@ export function useRegistryPairs(network: NetworkKey) {
           }
         } catch (err) {
           // If the on-chain read fails (RPC down), fall through to static list
-          // so the app still renders. Logged for the operator.
-          console.warn("[registry] on-chain read failed, using static fallback", err);
+          // so the app still renders. Logged only in dev to avoid console noise.
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("[registry] on-chain read failed, using static fallback", err);
+          }
           for (const p of NETWORKS[network].pairs) {
             out.push({
               ...p,

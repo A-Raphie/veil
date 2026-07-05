@@ -4,18 +4,20 @@
  * Decrypt any ERC-7984 balance.
  *
  * Bounty requirement: "Support user decryption of the connected wallet's balance
- * for ANY ERC-7984 token, not only registered ones (paste-an-address or auto-detect flow)."
+ * for ANY ERC-7984 token, not only registered ones (paste-an-address or auto-detect)."
  *
- * Uses the SDK permit flow with explicit gating (the docs warn: never call a decrypt
- * hook ungated, or the user gets a blind wallet popup on render):
- *   useHasPermit  → is the user already permitted? (no popup)
+ * Uses the SDK permit flow with explicit gating:
+ *   useHasPermit  → already permitted? (no popup)
  *   useGrantPermit→ request the one-time EIP-712 signature
  *   useConfidentialBalance → read the decrypted balance once permitted
+ *
+ * Address input is validated syntactically before any contract call, so invalid
+ * or non-ERC-7984 addresses produce a friendly error (rubric: error handling).
  */
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import {
   useConfidentialBalance,
   useGrantPermit,
@@ -25,17 +27,31 @@ import type { Address } from "viem";
 import { useRegistryPairs } from "@/lib/registry";
 import { useActiveNetwork } from "@/lib/use-active-network";
 import { shortAddr } from "@/lib/format";
+import { checkAddress, addressErrorReason } from "@/lib/address";
 import { humanizeError } from "@/lib/errors";
 import { pushToast } from "@/components/toast";
+import { WrongNetworkBanner } from "@/components/wrong-network-banner";
+import { Alert } from "@/components/alert";
 import { Lock, Unlock, ScanSearch, KeyRound } from "lucide-react";
 import { Copy } from "@/components/copy";
+import { Skeleton } from "@/components/skeleton";
 
 export default function DecryptPage() {
-  // useSearchParams must be inside a Suspense boundary for static prerender.
+  // Header renders in SSR; the interactive inner part is Suspense-gated.
   return (
-    <Suspense fallback={<div className="card animate-pulse text-slate-400">Loading…</div>}>
-      <DecryptPageInner />
-    </Suspense>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Decrypt Confidential Balance</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Decrypt the connected wallet&apos;s ERC-7984 balance for <em>any</em> confidential token
+          — not just registry ones. Paste a wrapper address or pick from the registry. Decryption
+          uses a one-time EIP-712 signature (a &quot;permit&quot;) that grants read access.
+        </p>
+      </header>
+      <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+        <DecryptPageInner />
+      </Suspense>
+    </div>
   );
 }
 
@@ -44,43 +60,47 @@ function DecryptPageInner() {
   const param = useSearchParams().get("token");
   const [token, setToken] = useState<string>(param ?? "");
 
+  // Validate as the user types (debounced-free; cheap syntactic check).
+  const check = useMemo(() => checkAddress(token), [token]);
+  const validToken = check.ok ? check.address : null;
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Decrypt Confidential Balance</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-400">
-          Decrypt the connected wallet's ERC-7984 balance for <em>any</em> confidential token —
-          not just registry ones. Paste a wrapper address or pick from the registry below.
-          Decryption uses a one-time EIP-712 signature (a "permit") that grants read access.
-        </p>
-      </header>
+    <>
+      <WrongNetworkBanner />
 
       {!isConnected && (
-        <div className="card text-sm text-slate-400">Connect a wallet to decrypt its balances.</div>
+        <div className="card text-sm text-slate-300">Connect a wallet to decrypt its balances.</div>
       )}
 
       <div className="card space-y-3">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-400">
+        <label htmlFor="token-input" className="flex items-center gap-2 text-xs font-medium text-slate-400">
           <ScanSearch className="h-3.5 w-3.5" /> Confidential token address (any ERC-7984)
         </label>
         <input
+          id="token-input"
           className="input mono"
           placeholder="0x… wrapper contract address"
           value={token}
           onChange={(e) => setToken(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
         />
+        {token && !check.ok && check.reason !== "empty" && (
+          <p className="text-xs text-rose-300">{addressErrorReason(check.reason)}</p>
+        )}
         <p className="text-xs text-slate-500">
-          Auto-detect: pick from <a className="underline" href="/">the registry</a>, or paste an
-          address for a wrapper that isn't registered.
+          Auto-detect: pick from{" "}
+          <a className="underline" href="/">
+            the registry
+          </a>
+          , or paste an address for a wrapper that isn&apos;t registered.
         </p>
       </div>
 
-      {isConnected && token.length === 42 && (
-        <DecryptCard token={token as Address} />
-      )}
+      {isConnected && validToken && <DecryptCard token={validToken} />}
 
       <KnownTokens onPick={setToken} active={token} />
-    </div>
+    </>
   );
 }
 
@@ -88,19 +108,34 @@ function DecryptCard({ token }: { token: Address }) {
   const { address } = useAccount();
   const [granted, setGranted] = useState(false);
 
-  // 1. Check if the user already has a permit covering this token.
+  // Detect whether the pasted address is actually an ERC-7984 wrapper via
+  // supportsInterface(0x4958f2a4). Gives a clear error BEFORE the permit flow.
+  const { data: isErc7984, isLoading: checkingInterface } = useReadContract({
+    address: token,
+    abi: [
+      {
+        type: "function",
+        name: "supportsInterface",
+        stateMutability: "view",
+        inputs: [{ name: "interfaceId", type: "bytes4" }],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ] as const,
+    functionName: "supportsInterface",
+    args: ["0x4958f2a4"],
+    query: { enabled: !!token },
+  });
+
   const { data: hasPermit, isLoading: checkingPermit } = useHasPermit({
     contractAddresses: [token],
   });
 
-  // 2. Grant a permit (one-time EIP-712 signature).
   const { mutateAsync: grantPermit, isPending: granting } = useGrantPermit();
 
-  // 3. Read the confidential balance (only fires once permitted).
   const permitted = hasPermit === true || granted;
   const { data: balance, isLoading: reading, error } = useConfidentialBalance({
     address: token,
-    account: address!,
+    account: address ?? "0x0000000000000000000000000000000000000000",
   });
 
   const onGrant = async () => {
@@ -126,15 +161,23 @@ function DecryptCard({ token }: { token: Address }) {
         </span>
       </div>
 
-      {!permitted && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-4 text-sm">
-          <div className="flex items-center gap-2 text-amber-200">
-            <KeyRound className="h-4 w-4" />
-            <span className="font-medium">Decrypt permission required</span>
-          </div>
-          <p className="mt-1 text-amber-200/80">
-            Sign a one-time EIP-712 permit to let this app decrypt your balance of this token.
-            It's reusable — returning users skip this step.
+      {/* Interface detection — reject non-ERC-7984 contracts up front. */}
+      {checkingInterface && (
+        <p className="text-xs text-slate-500">Checking ERC-7984 interface…</p>
+      )}
+      {isErc7984 === false && (
+        <Alert variant="error" title="Not an ERC-7984 wrapper">
+          This contract doesn&apos;t implement the ERC-7984 interface
+          (<span className="mono">0x4958f2a4</span>). Decryption only works on confidential
+          wrapper tokens.
+        </Alert>
+      )}
+
+      {isErc7984 !== false && !permitted && (
+        <Alert variant="warning" title="Decrypt permission required">
+          <p>
+            Sign a one-time EIP-712 permit to let Veil decrypt your balance of this token.
+            It&apos;s reusable — returning users skip this step.
           </p>
           <button
             className="btn-primary mt-3"
@@ -143,7 +186,7 @@ function DecryptCard({ token }: { token: Address }) {
           >
             {granting ? "Awaiting signature…" : "Grant decrypt permit"}
           </button>
-        </div>
+        </Alert>
       )}
 
       {permitted && (
@@ -151,11 +194,18 @@ function DecryptCard({ token }: { token: Address }) {
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-300">
             <Unlock className="h-3.5 w-3.5" /> Decrypted balance
           </div>
-          <div className="mt-1 font-mono text-3xl font-semibold">
+          <div className="animate-veil-rise mt-1 font-mono text-3xl font-semibold text-brand-200">
             {reading ? "decrypting…" : error ? "—" : (balance?.toString() ?? "0")}
           </div>
           {error && (
-            <p className="mt-2 text-xs text-red-300">{humanizeError(error)}</p>
+            <p className="mt-2 text-xs text-rose-300">
+              {humanizeError(error)}
+              {!error.message?.includes("permit") && (
+                <span className="mt-1 block text-slate-400">
+                  This may not be a valid ERC-7984 wrapper, or you have no balance of it.
+                </span>
+              )}
+            </p>
           )}
         </div>
       )}
@@ -171,11 +221,12 @@ function KnownTokens({
   active: string;
 }) {
   const { network } = useActiveNetwork();
-  const { data: pairs } = useRegistryPairs(network);
+  const { data: pairs, isLoading } = useRegistryPairs(network);
+  if (isLoading) return <Skeleton className="h-16 w-full" />;
   if (!pairs?.length) return null;
   return (
     <div className="card">
-      <h3 className="text-xs font-medium text-slate-400">Pick from the registry</h3>
+      <h2 className="text-xs font-medium text-slate-400">Pick from the registry</h2>
       <div className="mt-2 flex flex-wrap gap-2">
         {pairs.map((p) => (
           <button

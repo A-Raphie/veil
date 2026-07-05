@@ -2,55 +2,176 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   Veil — design tokens
+   A dark, "cryptography lab" aesthetic: deep voids, a single confident accent
+   (brand teal-green = "decrypted/revealed"), violet for the "encrypted" state.
+   ========================================================================== */
 :root {
-  --background: 8 12 20;
-  --foreground: 226 232 240;
-  --card: 15 23 36;
+  /* surfaces — layered voids */
+  --bg-void: 6 10 18;
+  --bg-deep: 11 16 27;
+  --bg-card: 16 23 36;
+  --bg-elevated: 22 31 47;
+
+  /* text — tuned for AA contrast on dark */
+  --text-strong: 248 250 252; /* slate-50  — headings */
+  --text: 226 232 240;        /* slate-200 — body */
+  --text-muted: 168 181 199;  /* bumped from slate-400 → AA on card */
+  --text-faint: 128 140 158;  /* slate-500 — secondary, still ≥ 4.5:1 on void */
+
+  /* lines */
   --border: 38 50 68;
-  --muted: 100 116 139;
-  --primary: 42 154 124;
+  --border-strong: 51 65 85;
+
+  /* accents */
+  --brand: 42 154 124;        /* teal-green — "revealed" */
+  --brand-bright: 72 211 168; /* brighter for text on dark */
+  --violet: 139 92 246;       /* "encrypted" */
+  --amber: 245 158 11;        /* warnings / wrong chain */
+  --rose: 244 63 94;          /* errors */
+
   color-scheme: dark;
 }
 
 html,
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
+  background-color: rgb(var(--bg-void));
+  color: rgb(var(--text));
   min-height: 100vh;
 }
 
 body {
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  background-image:
+    radial-gradient(40% 30% at 85% -5%, rgba(42, 154, 124, 0.08), transparent 70%),
+    radial-gradient(35% 25% at 0% 100%, rgba(139, 92, 246, 0.06), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Subtle grain/noise overlay for depth — pure CSS, no asset. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.025;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @layer base {
   * {
     border-color: rgb(var(--border));
   }
+
+  ::selection {
+    background-color: rgb(var(--brand) / 0.3);
+    color: rgb(var(--text-strong));
+  }
+
+  /* Custom scrollbar — small detail that reads as "polished". */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--bg-void));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border-strong));
+    border-radius: 9999px;
+    border: 2px solid rgb(var(--bg-void));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--text-faint));
+  }
+
+  /* Visible focus for keyboard users; suppressed for mouse. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand-bright));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Respect reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border bg-[rgb(var(--card))] p-5;
+    @apply rounded-xl border bg-[rgb(var(--bg-card))] p-5 transition-colors;
   }
+  .card-hover {
+    @apply card hover:border-[rgb(var(--brand)/0.4)] hover:bg-[rgb(var(--bg-elevated))];
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-500;
+    @apply btn bg-brand-600 text-white shadow-lg shadow-brand-900/30 hover:bg-brand-500 hover:shadow-brand-800/40 active:scale-[0.98];
   }
   .btn-secondary {
-    @apply btn border bg-transparent hover:bg-white/5;
+    @apply btn border bg-transparent hover:bg-white/5 hover:border-[rgb(var(--border-strong))];
   }
+  .btn-ghost {
+    @apply btn bg-transparent text-slate-300 hover:bg-white/5 hover:text-white;
+  }
+
   .input {
-    @apply w-full rounded-lg border bg-black/20 px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-brand-500;
+    @apply w-full rounded-lg border bg-black/30 px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500;
   }
+
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
   }
+
+  /* Skeleton shimmer — used for loading states. */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-white/[0.06];
+  }
 }
 
-/* Monospace addresses truncate cleanly */
 .mono {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Glassy backdrop for floating elements (nav, toasts, hero card). */
+.glass {
+  background: rgb(var(--bg-card) / 0.7);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+
+/* Animated gradient text — for hero emphasis. */
+.text-gradient {
+  background: linear-gradient(110deg, rgb(var(--brand-bright)), rgb(var(--violet)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  animation: gradient-pan 6s ease infinite;
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* "Curtain rise" reveal animation — used for the decrypt demo. */
+@keyframes veil-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-veil-rise {
+  animation: veil-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
