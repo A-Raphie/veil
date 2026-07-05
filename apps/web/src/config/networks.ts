@@ -54,7 +54,7 @@ export function buildWagmiConfig() {
     multiInjectedProviderDiscovery: true,
     transports: {
       [sepolia.id]: http(),
-      [mainnet.id]: http(),
+      [mainnet.id]: http("https://eth.llamarpc.com"),
     },
   });
 }
