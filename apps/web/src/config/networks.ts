@@ -12,15 +12,16 @@
  */
 
 import { http, createConfig } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { sepolia, mainnet } from "wagmi/chains";
 import { createConfig as createZamaConfig } from "@zama-fhe/react-sdk/wagmi";
 import { web } from "@zama-fhe/sdk/web";
 import {
   sepolia as sepoliaFhe,
+  mainnet as mainnetFhe,
   type FheChain,
 } from "@zama-fhe/sdk/chains";
 
-export const SUPPORTED_CHAINS = [sepolia] as const;
+export const SUPPORTED_CHAINS = [sepolia, mainnet] as const;
 
 /**
  * Sepolia FheChain — the testnet relayer is OPEN (no x-api-key required; the
@@ -32,7 +33,16 @@ export const sepoliaFheChain = {
   relayerUrl: "https://relayer.testnet.zama.org/v2",
 } as const satisfies FheChain;
 
-export const FHE_CHAINS = [sepoliaFheChain] as const;
+/**
+ * Mainnet FheChain — the relayer requires an x-api-key. Route through our
+ * server-side proxy (api/relayer/[chainId]/route.ts) which injects the key.
+ */
+export const mainnetFheChain = {
+  ...mainnetFhe,
+  relayerUrl: "/api/relayer/1",
+} as const satisfies FheChain;
+
+export const FHE_CHAINS = [sepoliaFheChain, mainnetFheChain] as const;
 
 /** wagmi config — the host RPC layer.
  *  multiInjectedProviderDiscovery auto-wires injected wallets (MetaMask etc.)
@@ -44,6 +54,7 @@ export function buildWagmiConfig() {
     multiInjectedProviderDiscovery: true,
     transports: {
       [sepolia.id]: http(),
+      [mainnet.id]: http(),
     },
   });
 }
@@ -58,6 +69,7 @@ export function buildZamaConfig(wagmiConfig: ReturnType<typeof buildWagmiConfig>
     wagmiConfig,
     relayers: {
       [sepoliaFheChain.id]: web(),
+      [mainnetFheChain.id]: web(),
     },
   });
 }

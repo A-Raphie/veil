@@ -14,7 +14,7 @@ import { useActiveNetwork } from "@/lib/use-active-network";
 import { shortAddr, explorerAddressUrl } from "@/lib/format";
 import { NETWORKS } from "@wrapper-registry/contracts";
 import { Copy } from "@/components/copy";
-import { Sparkles, ShieldCheck, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Sparkles, ShieldCheck, ShieldOff, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export default function RegistryPage() {
@@ -161,6 +161,9 @@ function BuiltFor() {
 
 /** Risk section — transparency about limitations. */
 function RiskSection() {
+  const { network } = useActiveNetwork();
+  const networkLabel = network === "mainnet" ? "Ethereum mainnet" : "Sepolia testnet";
+
   return (
     <section className="border-y bg-black/20 py-14">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
@@ -173,8 +176,8 @@ function RiskSection() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="card">
             <p className="text-xs text-slate-500">Network</p>
-            <p className="mt-1 text-sm font-medium text-amber-300">Sepolia testnet only</p>
-            <p className="mt-1 text-xs text-slate-400">Not deployed to mainnet. All tokens are test mocks with no real value.</p>
+            <p className="mt-1 text-sm font-medium text-amber-300">{networkLabel}</p>
+            <p className="mt-1 text-xs text-slate-400">{network === "mainnet" ? "Mainnet tokens have real value. Wrap with caution." : "All tokens are test mocks with no real value."}</p>
           </div>
           <div className="card">
             <p className="text-xs text-slate-500">Encryption cost</p>
@@ -204,7 +207,7 @@ function ProofStrip() {
 
   const stats = [
     { icon: Layers, label: "Pairs live", value: pairs?.length?.toString() ?? "—" },
-    { icon: GitBranch, label: "Network", value: "Sepolia" },
+    { icon: GitBranch, label: "Network", value: network === "mainnet" ? "Mainnet" : "Sepolia" },
     { icon: Lock, label: "Standard", value: "ERC-7984" },
   ];
 
@@ -270,7 +273,7 @@ function RegistrySection() {
 
       {!isConnected && (
         <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-amber-200/80">
-          Connect a wallet on Sepolia to transact. Browsing the registry needs no wallet.
+          Connect a wallet on {network === "mainnet" ? "mainnet" : "Sepolia"} to transact. Browsing the registry needs no wallet.
         </p>
       )}
 
@@ -289,30 +292,37 @@ function RegistrySection() {
       {pairs && pairs.length > 0 && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pairs.map((p) => (
-            <article key={p.confidentialToken} className={["card-hover group flex flex-col gap-3", !p.faucetable && "opacity-50"].join(" ")}>
+            <article key={p.confidentialToken} className={["card-hover group flex flex-col gap-3", !p.isValid && "opacity-40", !p.faucetable && p.isValid && "opacity-50"].join(" ")}>
               <header className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-base font-semibold">{p.symbol}</h3>
                   <p className="text-xs text-slate-400">{p.name}</p>
                 </div>
-                <span
-                  className={[
-                    "badge",
-                    p.source === "registry"
-                      ? "bg-brand-500/15 text-brand-300"
-                      : "bg-violet-500/15 text-violet-300",
-                  ].join(" ")}
-                >
-                  {p.source === "registry" ? (
-                    <>
-                      <ShieldCheck className="h-3 w-3" /> registry
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3 w-3" /> local
-                    </>
+                <div className="flex items-center gap-1.5">
+                  {!p.isValid && (
+                    <span className="badge bg-rose-500/15 text-rose-300">
+                      <ShieldOff className="h-3 w-3" /> revoked
+                    </span>
                   )}
-                </span>
+                  <span
+                    className={[
+                      "badge",
+                      p.source === "registry"
+                        ? "bg-brand-500/15 text-brand-300"
+                        : "bg-violet-500/15 text-violet-300",
+                    ].join(" ")}
+                  >
+                    {p.source === "registry" ? (
+                      <>
+                        <ShieldCheck className="h-3 w-3" /> registry
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3" /> local
+                      </>
+                    )}
+                  </span>
+                </div>
               </header>
 
               <dl className="space-y-2 text-xs">
@@ -359,12 +369,18 @@ function RegistrySection() {
               </dl>
 
               <footer className="mt-auto flex flex-wrap gap-2 pt-1">
-                <Link
-                  href={`/wrap?token=${p.confidentialToken}`}
-                  className="btn-primary text-xs"
-                >
-                  Wrap / Unwrap <ArrowRight className="h-3 w-3" />
-                </Link>
+                {p.isValid ? (
+                  <Link
+                    href={`/wrap?token=${p.confidentialToken}`}
+                    className="btn-primary text-xs"
+                  >
+                    Wrap / Unwrap <ArrowRight className="h-3 w-3" />
+                  </Link>
+                ) : (
+                  <span className="btn-secondary text-xs opacity-50 cursor-not-allowed">
+                    Revoked
+                  </span>
+                )}
                 <Link
                   href={`/decrypt?token=${p.confidentialToken}`}
                   className="btn-secondary text-xs"

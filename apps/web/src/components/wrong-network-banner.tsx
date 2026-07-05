@@ -3,7 +3,7 @@
 /**
  * WrongNetworkBanner — a prominent, dismissible banner with a one-click switch.
  * Shown when the connected wallet is on a chain this app doesn't support.
- * Sepolia is the default target (the judging network).
+ * Offers switching to Sepolia (the bounty judging network).
  */
 
 import { useState } from "react";

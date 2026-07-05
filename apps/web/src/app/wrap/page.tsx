@@ -60,7 +60,7 @@ function WrapPageInner() {
     <>
       {!isConnected && (
         <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-center text-amber-200/80">
-          Connect a wallet on Sepolia to wrap or unwrap.
+          Connect a wallet on {network === "mainnet" ? "mainnet" : "Sepolia"} to wrap or unwrap.
         </p>
       )}
 
@@ -81,7 +81,7 @@ function WrapPageInner() {
 
       {pairs && pairs.length > 0 && (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {pairs.map((p) => (
+          {pairs.filter((p) => p.isValid).map((p) => (
             <PairWrapCard key={p.confidentialToken} pair={p} />
           ))}
         </div>
