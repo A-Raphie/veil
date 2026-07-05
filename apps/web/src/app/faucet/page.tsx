@@ -32,7 +32,7 @@ export default function FaucetPage() {
   const faucetable = NETWORKS[network].pairs.filter((p) => p.faucetable);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-[45px]">
+    <div className="mx-auto max-w-5xl space-y-6 py-[45px]">
       <Header />
 
       <WrongNetworkBanner />
