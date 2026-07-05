@@ -39,7 +39,7 @@ export function Hero() {
             <span className="text-gradient">Yours to reveal.</span>
           </h1>
           <p className="mt-5 max-w-md text-pretty text-base leading-relaxed text-slate-300">
-            Every ERC-20 becomes a confidential ERC-7984 token — balances hidden
+            Every ERC-20 becomes a confidential ERC-7984 token. Balances hidden
             on-chain, decrypted only with your cryptographic permission.
           </p>
           <p className="mt-3 max-w-md text-pretty text-base leading-relaxed text-slate-300">

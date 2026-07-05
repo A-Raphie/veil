@@ -63,7 +63,7 @@ function ProblemSection() {
       icon: Layers,
       stat: "1",
       label: "registry contract",
-      description: "Zama deployed an on-chain Wrappers Registry on Sepolia. No frontend to browse it — developers and users read contract ABIs.",
+      description: "Zama deployed an on-chain Wrappers Registry on Sepolia. No frontend to browse it. Developers and users read contract ABIs.",
     },
     {
       icon: Eye,
@@ -121,7 +121,7 @@ function BuiltFor() {
     {
       icon: Lock,
       title: "For Users",
-      description: "Claim test tokens, wrap them into ciphertext, decrypt your balance — all in one place.",
+      description: "Claim test tokens, wrap them into ciphertext, decrypt your balance, all in one place.",
     },
     {
       icon: ShieldCheck,
