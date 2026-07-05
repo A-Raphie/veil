@@ -63,7 +63,7 @@ export default function FaucetPage() {
         <ClaimAllButton pairs={faucetable} />
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {faucetable.map((p) => (
           <FaucetRow
             key={p.underlying}
@@ -253,8 +253,7 @@ function Header() {
     <header className="text-center">
       <h1 className="text-2xl font-semibold tracking-tight">Sepolia Faucet</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Claim the official cTokenMock test tokens (1,000,000 per call, per token).
-        These mint into your connected wallet and are immediately wrap-ready.
+        Mint test tokens to wrap into confidential ERC-7984 equivalents.
       </p>
     </header>
   );

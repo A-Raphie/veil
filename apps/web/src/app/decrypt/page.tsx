@@ -43,9 +43,7 @@ export default function DecryptPage() {
       <header className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Decrypt Confidential Balance</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Decrypt the connected wallet&apos;s ERC-7984 balance for <em>any</em> confidential token
-          — not just registry ones. Paste a wrapper address or pick from the registry. Decryption
-          uses a one-time EIP-712 signature (a &quot;permit&quot;) that grants read access.
+          Reveal your encrypted balance for any confidential token.
         </p>
       </header>
       <Suspense fallback={<Skeleton className="h-40 w-full" />}>
