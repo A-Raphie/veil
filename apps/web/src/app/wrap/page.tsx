@@ -3,8 +3,8 @@
 /**
  * Wrap / Unwrap — the core confidential-token flow.
  *
- * Every pair gets its own full card in a responsive grid,
- * matching the registry section layout on the landing page.
+ * Every pair gets its own compact card in a responsive grid.
+ * No scrolling on desktop: 4 cols × 2 rows.
  */
 
 import { useMemo, useState, Suspense } from "react";
@@ -34,20 +34,16 @@ export default function WrapPage() {
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <WrongNetworkBanner />
 
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Wrap & <span className="text-slate-500">Unwrap</span>
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-slate-400">
-              Convert an underlying ERC-20 into its confidential ERC-7984 equivalent and back.
-              Wrapping auto-approves the underlying; unwrapping runs the on-chain two-step
-              (request → decrypt → finalize) in one click.
-            </p>
-          </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Wrap & <span className="text-slate-500">Unwrap</span>
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Convert an underlying ERC-20 into its confidential ERC-7984 equivalent and back.
+          </p>
         </div>
 
-        <Suspense fallback={<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}</div>}>
+        <Suspense fallback={<div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}</div>}>
           <WrapPageInner />
         </Suspense>
       </div>
@@ -63,15 +59,15 @@ function WrapPageInner() {
   return (
     <>
       {!isConnected && (
-        <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-amber-200/80">
-          Connect a wallet on Sepolia to wrap or unwrap. Browsing the registry needs no wallet.
+        <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-center text-amber-200/80">
+          Connect a wallet on Sepolia to wrap or unwrap.
         </p>
       )}
 
       {isLoading && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-72 w-full" />
+            <Skeleton key={i} className="h-44 w-full" />
           ))}
         </div>
       )}
@@ -84,7 +80,7 @@ function WrapPageInner() {
       )}
 
       {pairs && pairs.length > 0 && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {pairs.map((p) => (
             <PairWrapCard key={p.confidentialToken} pair={p} />
           ))}
@@ -141,15 +137,10 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
       pushToast("error", "Enter a valid amount");
       return;
     }
-    setTx({ kind: "pending", label: "Wrapping — approving & wrapping…" });
+    setTx({ kind: "pending", label: "Wrapping…" });
     try {
       const { txHash } = await shield({ amount: parsedAmount, approvalStrategy: "exact" });
-      setTx({
-        kind: "success",
-        txHash,
-        network,
-        label: `Wrapped ${amount} ${pair.symbol}`,
-      });
+      setTx({ kind: "success", txHash, network, label: `Wrapped ${amount} ${pair.symbol}` });
       setAmount("");
     } catch (err) {
       setTx({ kind: "error", message: humanizeError(err) });
@@ -161,21 +152,14 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
       pushToast("error", "Enter a valid amount");
       return;
     }
-    setTx({ kind: "pending", label: "Unwrapping (2-step: request → decrypt → finalize)…" });
+    setTx({ kind: "pending", label: "Unwrapping…" });
     try {
       const { txHash } = await unshield({
         amount: parsedAmount,
-        onUnwrapSubmitted: () =>
-          setTx({ kind: "pending", label: "Unwrap requested — awaiting decryption proof…" }),
-        onFinalizeSubmitted: () =>
-          setTx({ kind: "pending", label: "Finalizing on-chain…" }),
+        onUnwrapSubmitted: () => setTx({ kind: "pending", label: "Decrypting…" }),
+        onFinalizeSubmitted: () => setTx({ kind: "pending", label: "Finalizing…" }),
       });
-      setTx({
-        kind: "success",
-        txHash,
-        network,
-        label: `Unwrapped ${amount} c${pair.symbol}`,
-      });
+      setTx({ kind: "success", txHash, network, label: `Unwrapped ${amount} c${pair.symbol}` });
       setAmount("");
     } catch (err) {
       setTx({ kind: "error", message: humanizeError(err) });
@@ -183,97 +167,77 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
   };
 
   return (
-    <article className={`card flex flex-col gap-3 ${!pair.faucetable ? "opacity-50" : ""}`}>
-      <header className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-base font-semibold">{pair.symbol}</h3>
-          <p className="text-xs text-slate-400">{pair.name}</p>
-        </div>
+    <article className={`card flex flex-col gap-2 ${!pair.faucetable ? "opacity-50" : ""}`}>
+      <header className="flex items-center justify-between gap-2">
+        <span className="font-semibold">{pair.symbol}</span>
         <span className="badge bg-brand-500/15 text-brand-300">
           <ShieldCheck className="h-3 w-3" /> ERC-7984
         </span>
       </header>
 
-      <div className="flex rounded-lg border border-white/5 p-1 text-sm" role="tablist" aria-label={`${pair.symbol} operation`}>
+      <div className="flex rounded-md border border-white/5 p-0.5 text-xs" role="tablist" aria-label={`${pair.symbol} operation`}>
         <button
           role="tab"
           aria-selected={mode === "wrap"}
           className={[
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
+            "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 font-medium transition-colors",
             mode === "wrap" ? "bg-brand-600 text-white" : "text-slate-300 hover:text-white",
           ].join(" ")}
           onClick={() => { setMode("wrap"); setTx({ kind: "idle" }); }}
         >
-          <ArrowLeftRight className="h-3.5 w-3.5" /> Wrap
+          <ArrowLeftRight className="h-3 w-3" /> Wrap
         </button>
         <button
           role="tab"
           aria-selected={mode === "unwrap"}
           className={[
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
+            "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 font-medium transition-colors",
             mode === "unwrap" ? "bg-brand-600 text-white" : "text-slate-300 hover:text-white",
           ].join(" ")}
           onClick={() => { setMode("unwrap"); setTx({ kind: "idle" }); }}
         >
-          <ArrowDownUp className="h-3.5 w-3.5" /> Unwrap
+          <ArrowDownUp className="h-3 w-3" /> Unwrap
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-white/5 bg-black/20 p-3">
-          <p className="flex items-center gap-1 text-xs text-slate-500">
-            <Unlock className="h-3 w-3" /> Underlying
-          </p>
+      <div className="space-y-1 text-xs">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1 text-slate-500"><Unlock className="h-3 w-3" /> Underlying</span>
           {balLoading ? (
-            <Skeleton className="mt-1 h-4 w-24" />
+            <Skeleton className="h-3 w-16" />
           ) : (
-            <p className="mono mt-1 text-sm text-slate-200">
-              {formatUnits(underlyingBalance as bigint ?? 0n, decimals)} {pair.symbol}
-            </p>
+            <span className="mono text-slate-200">{formatUnits(underlyingBalance as bigint ?? 0n, decimals)} {pair.symbol}</span>
           )}
         </div>
-        <div className="rounded-lg border border-white/5 bg-black/20 p-3">
-          <p className="flex items-center gap-1 text-xs text-slate-500">
-            <Lock className="h-3 w-3" /> Confidential
-          </p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1 text-slate-500"><Lock className="h-3 w-3" /> Confidential</span>
           {mode === "unwrap" && hasPermit && confidentialBalance !== undefined ? (
-            <p className="mono mt-1 text-sm text-brand-300">
-              {formatUnits(confidentialBalance as bigint, decimals)} c{pair.symbol}
-            </p>
+            <span className="mono text-brand-300">{formatUnits(confidentialBalance as bigint, decimals)} c{pair.symbol}</span>
           ) : (
-            <p className="mono mt-1 text-sm text-violet-300/60">encrypted</p>
+            <span className="mono text-violet-300/60">encrypted</span>
           )}
         </div>
       </div>
 
-      <div>
-        <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-slate-400">
-          {mode === "wrap" ? "Underlying amount" : "Confidential amount to unwrap"}
-        </label>
+      <div className="flex gap-2">
         <input
           id={inputId}
-          className="input mono"
+          className="input mono flex-1"
           inputMode="decimal"
           placeholder="0.0"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <p className="mt-1 text-xs text-slate-500">
-          {mode === "wrap"
-            ? "Wrapping rounds down to 6 decimals (ERC-7984 euint64); any excess is refunded."
-            : "Unwrap runs the on-chain two-step (request + public decrypt + finalize) automatically."}
-        </p>
+        <button
+          className="btn-primary shrink-0 text-xs"
+          disabled={pending || !parsedAmount || parsedAmount <= 0n}
+          onClick={mode === "wrap" ? onWrap : onUnwrap}
+        >
+          {pending
+            ? mode === "wrap" ? "Wrapping…" : "Unwrapping…"
+            : mode === "wrap" ? `Wrap` : `Unwrap`}
+        </button>
       </div>
-
-      <button
-        className="btn-primary w-full"
-        disabled={pending || !parsedAmount || parsedAmount <= 0n}
-        onClick={mode === "wrap" ? onWrap : onUnwrap}
-      >
-        {pending
-          ? mode === "wrap" ? "Wrapping…" : "Unwrapping…"
-          : mode === "wrap" ? `Wrap ${pair.symbol}` : `Unwrap c${pair.symbol}`}
-      </button>
 
       <TransactionStatus state={tx} />
 
@@ -283,7 +247,7 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
           className="underline decoration-dotted hover:text-slate-300"
           href={`/decrypt?token=${pair.confidentialToken}`}
         >
-          View confidential balance
+          View balance →
         </Link>
       </div>
     </article>
