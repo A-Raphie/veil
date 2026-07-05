@@ -25,7 +25,7 @@ export default function RegistryPage() {
       <HowItWorks />
       <Manifesto />
       <WrapperInspector />
-      <Testimonials />
+      <BuiltFor />
       <ProofStrip />
       <RiskSection />
       <RegistrySection />
@@ -112,23 +112,23 @@ function ProblemSection() {
   );
 }
 
-/** Testimonials — social proof from testers. */
-function Testimonials() {
-  const testimonials = [
+/** Built for — who the product serves (no fake testimonials). */
+function BuiltFor() {
+  const personas = [
     {
-      quote: "Finally, a single place to browse and wrap confidential tokens. The registry grid makes it trivial to compare pairs.",
-      author: "Dev",
-      role: "Zama Community",
+      icon: Eye,
+      title: "For Developers",
+      description: "Paste any ERC-7984 wrapper. Inspect public metadata + ciphertext handles. No wallet required.",
     },
     {
-      quote: "The decrypt flow with EIP-712 permits is the cleanest UX I've seen for FHE. One signature, balance revealed.",
-      author: "Builder",
-      role: "ERC-7984 Ecosystem",
+      icon: Lock,
+      title: "For Users",
+      description: "Claim test tokens, wrap them into ciphertext, decrypt your balance — all in one place.",
     },
     {
-      quote: "Wrapping and unwrapping in one click — no more hunting for wrapper addresses or manual approvals.",
-      author: "User",
-      role: "Sepolia Testnet",
+      icon: ShieldCheck,
+      title: "For Auditors",
+      description: "Every pair sourced from the on-chain registry. Source tags distinguish official vs local pairs.",
     },
   ];
 
@@ -136,19 +136,21 @@ function Testimonials() {
     <section className="border-y bg-black/20 py-14">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
-          05 — What people are saying
+          05 — Built for
         </p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">
-          Built for developers and users.
+          Developers, users, and auditors.
         </h2>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <div key={t.author} className="card">
-              <p className="text-sm text-slate-300">&ldquo;{t.quote}&rdquo;</p>
-              <div className="mt-4 border-t pt-3">
-                <p className="text-xs font-medium">{t.author}</p>
-                <p className="text-xs text-slate-500">{t.role}</p>
+          {personas.map((p) => (
+            <div key={p.title} className="card">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border bg-black/30 text-brand-400">
+                  <p.icon className="h-4 w-4" />
+                </span>
+                <h3 className="font-medium">{p.title}</h3>
               </div>
+              <p className="mt-3 text-sm text-slate-400">{p.description}</p>
             </div>
           ))}
         </div>
