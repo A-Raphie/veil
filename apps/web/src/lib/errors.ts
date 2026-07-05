@@ -6,6 +6,9 @@
 export function humanizeError(err: unknown): string {
   const msg = getErrorMessage(err);
 
+  // Log the full error for debugging (visible in browser console)
+  console.error("[humanizeError]", err);
+
   // Wallet / user actions
   if (/user rejected|user denied|transaction rejected/i.test(msg))
     return "Transaction rejected in wallet";
@@ -58,7 +61,25 @@ export function humanizeError(err: unknown): string {
   if (/method not found|method not supported/i.test(msg))
     return "RPC error — try a different network";
 
-  // Fallback — never show raw error text to users
+  // SDK error codes — check the code property on the error object
+  const code = getErrorCode(err);
+  if (code === "INSUFFICIENT_ERC20_BALANCE")
+    return "Insufficient balance — you don't have enough tokens";
+  if (code === "INSUFFICIENT_CONFIDENTIAL_BALANCE")
+    return "Insufficient confidential balance — you don't have enough to unwrap";
+  if (code === "ERC20_READ_FAILED")
+    return "Could not read token balance — try again";
+  if (code === "WALLET_NOT_CONNECTED") return "Connect your wallet first";
+  if (code === "SIGNING_REJECTED") return "Signature rejected in wallet";
+  if (code === "TRANSACTION_REVERTED") return "Transaction failed on-chain";
+  if (code === "RELAYER_REQUEST_FAILED")
+    return "Relayer error — try again in a moment";
+  if (code === "DECRYPTION_FAILED") return "Decryption failed — try again";
+  if (code === "BALANCE_CHECK_UNAVAILABLE")
+    return "Could not verify balance — try again";
+
+  // Fallback — truncate but don't hide completely
+  if (msg && msg !== "unknown" && msg !== "Error" && msg.length < 120) return msg;
   return "Something went wrong";
 }
 
@@ -84,4 +105,21 @@ function getErrorMessage(err: unknown): string {
   }
 
   return msg || String(err);
+}
+
+/**
+ * Try to extract an SDK error code from the error object.
+ * The Zama SDK errors have a `code` property with string values like
+ * "INSUFFICIENT_ERC20_BALANCE", "RELAYER_REQUEST_FAILED", etc.
+ */
+function getErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+  // Check cause chain
+  if (err instanceof Error && err.cause) {
+    return getErrorCode(err.cause);
+  }
+  return undefined;
 }

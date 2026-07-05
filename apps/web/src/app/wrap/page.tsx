@@ -136,6 +136,7 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
       pushToast("error", "Enter a valid amount");
       return;
     }
+    console.log("[wrap] underlyingBalance:", underlyingBalance?.toString(), "parsedAmount:", parsedAmount.toString());
     if (underlyingBalance !== undefined && parsedAmount > (underlyingBalance as bigint)) {
       setTx({ kind: "error", message: "Insufficient balance — you don't have enough tokens" });
       return;
