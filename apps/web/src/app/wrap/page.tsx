@@ -136,6 +136,10 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
       pushToast("error", "Enter a valid amount");
       return;
     }
+    if (underlyingBalance !== undefined && parsedAmount > (underlyingBalance as bigint)) {
+      setTx({ kind: "error", message: "Insufficient balance — you don't have enough tokens" });
+      return;
+    }
     setTx({ kind: "pending", label: "Wrapping…" });
     try {
       const { txHash } = await shield({ amount: parsedAmount, approvalStrategy: "exact" });
