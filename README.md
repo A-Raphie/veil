@@ -5,7 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/raphie/veil/ci.yml?label=CI)](https://github.com/raphie/veil/actions)
 [![Sepolia](https://img.shields.io/badge/Network-Sepolia-orange)](https://sepolia.etherscan.io/address/0x2f0750Bbb0A246059d80e94c454586a7F27a128e)
-[![Mainnet](https://img.shields.io/badge/Network-Mainnet-purple)](https://etherscan.io/address/0xeb5015fF021DB115aCe010f23F55C2591059bBA0)
 [![FHEVM](https://img.shields.io/badge/Zama-FHEVM-black)](https://github.com/zama-ai/fhevm)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org)
 
@@ -25,8 +24,7 @@ Veil turns the registry into a complete dApp. Browse every official wrapper pair
 claim test tokens from the faucet, wrap and unwrap in one click, and decrypt any
 confidential balance — all from a clean UI backed by the official Zama SDK.
 
-Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Supports **Sepolia** and
-**Ethereum mainnet**.
+Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Runs on **Sepolia**.
 
 ---
 
@@ -34,7 +32,7 @@ Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Supports **Sepolia** and
 
 - **App:** https://veil-registry.vercel.app
 - **Video pitch:** _\<add your X/YouTube/Loom link\>_
-- **Networks:** Sepolia (11155111) and Ethereum mainnet (1)
+- **Networks:** Sepolia (11155111)
 
 ---
 
@@ -97,7 +95,7 @@ Real transactions on Sepolia, executed with wallet
 | **Config validation** | Rejects bad addresses, duplicate wrappers, out-of-range decimals — fails loudly at load time | `packages/registry-config/src/index.ts:78–131` |
 | **Address validation** | Client-side EIP-55 checksum via viem `isAddress()` + `getAddress()` on all user inputs | `apps/web/src/lib/address.ts:23–26` |
 | **Transaction lifecycle** | `TxState` discriminated union (`idle → pending → success \| error`); every tx transitions through the full lifecycle inline | `apps/web/src/components/transaction-status.tsx:13–66` |
-| **Relayer key isolation** | Mainnet API key read from server env only, injected into upstream header server-side; browser never sees it | `apps/web/src/app/api/relayer/[chainId]/route.ts:14,58` |
+| **Relayer key isolation** | Sepolia relayer is open (no key); mainnet proxy isolates API key server-side | `apps/web/src/app/api/relayer/[chainId]/route.ts:14,58` |
 | **Test-only guard** | Faucet buttons disabled on unsupported chains; mainnet relayer proxy rejects Sepolia requests | `apps/web/src/app/faucet/page.tsx:60`, `apps/web/src/app/api/relayer/[chainId]/route.ts:27` |
 | **Cross-origin isolation** | COOP/COEP headers on all routes — required for FHE WASM `SharedArrayBuffer` in Web Workers | `apps/web/next.config.mjs:15–16` |
 
@@ -108,7 +106,6 @@ Real transactions on Sepolia, executed with wallet
 | Network | Chain ID | Registry | Faucet |
 |---|---|---|---|
 | **Sepolia** | 11155111 | [`0x2f0750Bbb0A246059d80e94c454586a7F27a128e`](https://sepolia.etherscan.io/address/0x2f0750Bbb0A246059d80e94c454586a7F27a128e) | ✅ 8 cTokenMocks |
-| **Ethereum mainnet** | 1 | [`0xeb5015fF021DB115aCe010f23F55C2591059bBA0`](https://etherscan.io/address/0xeb5015fF021DB115aCe010f23F55C2591059bBA0) | — |
 
 Canonical addresses in [`packages/contracts/src/addresses.ts`](packages/contracts/src/addresses.ts).
 
@@ -136,7 +133,7 @@ veil/
 │   ├── src/config/networks.ts    # wagmi + Zama SDK config (client-only)
 │   ├── public/                   # favicon.svg, og-image.png
 │   └── next.config.mjs           # COOP/COEP headers (required for FHE WASM)
-├── packages/contracts/           # ABIs + canonical Sepolia/mainnet addresses
+├── packages/contracts/           # ABIs + canonical Sepolia addresses
 └── packages/registry-config/     # typed local-config schema + validation + add-pair CLI
 ```
 
@@ -146,19 +143,13 @@ veil/
 
 ## Configuration
 
-### 1. Relayer API key (mainnet only — not needed for Sepolia)
+### Zero-config on Sepolia
 
 The **Sepolia testnet relayer is open** (`https://relayer.testnet.zama.org/v2`, no
 key required, verified empirically), so the entire bounty-judging flow works with
 **zero configuration**. Veil points the SDK straight at the public Sepolia host.
 
-Only **mainnet** decryption requires a key. Veil routes mainnet through a
-server-side proxy (`/api/relayer/1`) so the key stays off the client:
-
-1. Request a key from Zama ([reviewed form](https://forms.gle/jq84zEek1oiv3kBz9)).
-2. Copy `.env.example` → `.env.local` in the project root and set `RELAYER_API_KEY`.
-
-### 2. Cross-origin isolation (already configured)
+### Cross-origin isolation (already configured)
 
 FHE WASM runs in a Web Worker and needs `SharedArrayBuffer`, which requires
 COOP/COEP headers — set in `next.config.mjs`. If a third-party wallet iframe
@@ -251,8 +242,7 @@ misconfigurations fail loudly. On a collision, the on-chain registry wins.
 1. Push the repo to GitHub.
 2. Import into Vercel — the `veil-web` workspace is auto-detected.
 3. Set `NEXT_PUBLIC_SITE_URL` to your deployed URL (for OG metadata).
-4. (Mainnet only) Set `RELAYER_API_KEY`.
-5. Deploy. COOP/COEP headers apply automatically via `next.config.mjs`.
+4. Deploy. COOP/COEP headers apply automatically via `next.config.mjs`.
 
 ---
 
@@ -268,7 +258,6 @@ misconfigurations fail loudly. On a collision, the on-chain registry wins.
 ## What's next
 
 - Live demo video (X/Loom) for the submission
-- Mainnet relayer key integration + smoke test
 - Additional wrapper pairs as the Protocol DAO registers them
 - Batch decrypt (multiple tokens in one permit)
 
