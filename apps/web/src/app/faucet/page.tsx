@@ -176,7 +176,23 @@ function ClaimAllButton(props: {
 }) {
   const { address } = useAccount();
   const { sendCallsAsync } = useSendCalls();
+  const { writeContractAsync } = useWriteContract();
   const [tx, setTx] = useState<TxState>({ kind: "idle" });
+
+  const claimSequential = async () => {
+    const total = props.pairs.length;
+    for (let i = 0; i < total; i++) {
+      const p = props.pairs[i];
+      setTx({ kind: "pending", label: `Claiming ${i + 1}/${total} ${p.symbol}…` });
+      const amount = FAUCET_MINT_AMOUNT * 10n ** BigInt(p.decimals);
+      await writeContractAsync({
+        address: p.underlying,
+        abi: erc20Abi,
+        functionName: "mint",
+        args: [address!, amount],
+      });
+    }
+  };
 
   const onClaimAll = async () => {
     if (!address) {
@@ -194,15 +210,20 @@ function ClaimAllButton(props: {
         }),
       }));
       await sendCallsAsync({ calls });
-      setTx({
-        kind: "success",
-        label: `Claimed all ${props.pairs.length} tokens`,
-        network: "sepolia",
-      });
-      pushToast("success", "All tokens claimed successfully");
-    } catch (err) {
-      setTx({ kind: "error", message: humanizeError(err) });
+    } catch {
+      try {
+        await claimSequential();
+      } catch (err) {
+        setTx({ kind: "error", message: humanizeError(err) });
+        return;
+      }
     }
+    setTx({
+      kind: "success",
+      label: `Claimed all ${props.pairs.length} tokens`,
+      network: "sepolia",
+    });
+    pushToast("success", "All tokens claimed successfully");
   };
 
   return (
@@ -211,7 +232,7 @@ function ClaimAllButton(props: {
         <div>
           <p className="text-sm font-medium">Claim all test tokens</p>
           <p className="text-xs text-slate-400">
-            Mint 1,000,000 of each token in one transaction
+            Mint 1,000,000 of each token in one go
           </p>
         </div>
         <button
