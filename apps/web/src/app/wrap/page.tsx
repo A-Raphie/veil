@@ -30,7 +30,7 @@ import { ArrowLeftRight, ArrowDownUp, Lock, Unlock, ShieldCheck } from "lucide-r
 
 export default function WrapPage() {
   return (
-    <section className="scroll-mt-20 py-14">
+    <section className="py-14">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <WrongNetworkBanner />
 
@@ -43,7 +43,7 @@ export default function WrapPage() {
           </p>
         </div>
 
-        <Suspense fallback={<div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}</div>}>
+        <Suspense fallback={<div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}</div>}>
           <WrapPageInner />
         </Suspense>
       </div>
@@ -65,7 +65,7 @@ function WrapPageInner() {
       )}
 
       {isLoading && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-44 w-full" />
           ))}
@@ -80,7 +80,7 @@ function WrapPageInner() {
       )}
 
       {pairs && pairs.length > 0 && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pairs.map((p) => (
             <PairWrapCard key={p.confidentialToken} pair={p} />
           ))}

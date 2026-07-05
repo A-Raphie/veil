@@ -34,7 +34,7 @@ export default function FaucetPage() {
 
   if (network !== "sepolia") {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto max-w-2xl space-y-4 py-14">
         <Header />
         <div className="card text-sm text-slate-300">
           The faucet is Sepolia-only. Switch networks to claim official cTokenMocks.
@@ -47,7 +47,7 @@ export default function FaucetPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 py-14">
       <Header />
 
       <WrongNetworkBanner />
@@ -250,7 +250,7 @@ function ClaimAllButton(props: {
 
 function Header() {
   return (
-    <header>
+    <header className="text-center">
       <h1 className="text-2xl font-semibold tracking-tight">Sepolia Faucet</h1>
       <p className="mt-1 text-sm text-slate-400">
         Claim the official cTokenMock test tokens (1,000,000 per call, per token).

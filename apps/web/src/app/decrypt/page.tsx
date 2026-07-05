@@ -39,8 +39,8 @@ import { Skeleton } from "@/components/skeleton";
 export default function DecryptPage() {
   // Header renders in SSR; the interactive inner part is Suspense-gated.
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <header>
+    <div className="mx-auto max-w-2xl space-y-6 py-14">
+      <header className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Decrypt Confidential Balance</h1>
         <p className="mt-1 text-sm text-slate-400">
           Decrypt the connected wallet&apos;s ERC-7984 balance for <em>any</em> confidential token
