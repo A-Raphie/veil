@@ -55,8 +55,6 @@ function WrapPageInner() {
   const { isConnected } = useActiveNetwork();
   const param = useSearchParams().get("token");
   const [selected, setSelected] = useState<Address | null>(param as Address | null);
-  const { data: pairs } = useRegistryPairs(useActiveNetwork().network);
-  const effective = selected ?? pairs?.[0]?.confidentialToken ?? null;
 
   return (
     <>
@@ -66,14 +64,14 @@ function WrapPageInner() {
         <div className="card text-sm text-slate-300">Connect a wallet to wrap or unwrap tokens.</div>
       )}
 
-      <TokenPicker selected={effective} onSelect={setSelected} />
+      <TokenGrid selected={selected} onSelect={setSelected} />
 
-      {effective && isConnected && <WrapCard key={effective} wrapper={effective} />}
+      {selected && isConnected && <WrapCard key={selected} wrapper={selected} />}
     </>
   );
 }
 
-function TokenPicker({
+function TokenGrid({
   selected,
   onSelect,
 }: {
@@ -83,27 +81,32 @@ function TokenPicker({
   const { network } = useActiveNetwork();
   const { data: pairs, isLoading } = useRegistryPairs(network);
 
-  if (isLoading) return <Skeleton className="h-20 w-full" />;
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
 
   return (
-    <div className="card">
-      <label htmlFor="token-select" className="text-xs font-medium text-slate-400">
-        Confidential token
-      </label>
-      <select
-        id="token-select"
-        className="input mt-2"
-        value={selected ?? ""}
-        onChange={(e) => onSelect((e.target.value || null) as Address | null)}
-      >
-        <option value="">Select a wrapper…</option>
-        {pairs?.map((p) => (
-          <option key={p.confidentialToken} value={p.confidentialToken}>
-            {p.symbol} — {p.name} ({shortAddr(p.confidentialToken)})
-          </option>
-        ))}
-      </select>
-    </div>
+    <section className="grid gap-3 sm:grid-cols-2">
+      {pairs?.map((p) => (
+        <button
+          key={p.confidentialToken}
+          className={[
+            "card text-left transition-colors",
+            selected === p.confidentialToken
+              ? "border-brand-500/50 bg-brand-950/20"
+              : "hover:border-white/10",
+          ].join(" ")}
+          onClick={() => onSelect(p.confidentialToken)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">{p.symbol}</span>
+            <span className="text-xs text-slate-500">ERC-7984</span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-slate-400">{p.name}</p>
+          <p className="mono mt-0.5 text-xs text-slate-500">
+            {shortAddr(p.confidentialToken)}
+          </p>
+        </button>
+      ))}
+    </section>
   );
 }
 
