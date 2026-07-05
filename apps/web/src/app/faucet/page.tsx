@@ -61,9 +61,8 @@ export default function FaucetPage() {
         ))}
       </section>
 
-      <div className="card text-xs text-slate-400">
-        Minted tokens are the <span className="text-slate-200">underlying</span> ERC-20. To get the
-        confidential (ERC-7984) version, wrap them on the{" "}
+      <div className="card text-center text-xs text-slate-400">
+        Wrap them into confidential tokens on the{" "}
         <Link className="text-brand-300 underline" href="/wrap">
           Wrap
         </Link>{" "}
