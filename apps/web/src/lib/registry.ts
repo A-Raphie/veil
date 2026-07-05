@@ -30,6 +30,7 @@ import {
   type LocalPair,
 } from "@wrapper-registry/registry-config";
 import { usePublicClient } from "wagmi";
+import { shortAddr } from "@/lib/format";
 
 /** A normalized pair used across the UI, tagged with its origin. */
 export interface UnifiedPair {
@@ -104,7 +105,7 @@ export function useRegistryPairs(network: NetworkKey) {
             const key = normalizeAddress(p.confidentialTokenAddress);
             const meta = fallback.get(key);
             out.push({
-              symbol: meta?.symbol ?? "UNKNOWN",
+              symbol: meta?.symbol ?? `Token ${shortAddr(p.confidentialTokenAddress)}`,
               name: meta?.name ?? "Unregistered pair",
               decimals: meta?.decimals ?? 6,
               confidentialToken: p.confidentialTokenAddress,

@@ -29,7 +29,8 @@ import Link from "next/link";
 
 export default function FaucetPage() {
   const { network, isConnected, isSupported } = useActiveNetwork();
-  const faucetable = NETWORKS[network].pairs.filter((p) => p.faucetable);
+  const allPairs = NETWORKS[network].pairs;
+  const faucetable = allPairs.filter((p) => p.faucetable);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 py-[45px]">
@@ -44,19 +45,20 @@ export default function FaucetPage() {
         </div>
       )}
 
-      {isConnected && isSupported && (
+      {isConnected && isSupported && faucetable.length > 0 && (
         <ClaimAllButton pairs={faucetable} />
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {faucetable.map((p) => (
+        {allPairs.map((p) => (
           <FaucetRow
             key={p.underlying}
             symbol={p.symbol}
             name={p.name}
             decimals={p.decimals}
             token={p.underlying}
-            disabled={!isConnected || !isSupported}
+            faucetable={p.faucetable}
+            disabled={!isConnected || !isSupported || !p.faucetable}
           />
         ))}
       </section>
@@ -77,6 +79,7 @@ function FaucetRow(props: {
   name: string;
   decimals: number;
   token: Address;
+  faucetable: boolean;
   disabled: boolean;
 }) {
   const { address } = useAccount();
@@ -117,7 +120,7 @@ function FaucetRow(props: {
   };
 
   return (
-    <div className="card space-y-3">
+    <div className={["card space-y-3", !props.faucetable && "opacity-40"].join(" ")}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -128,13 +131,19 @@ function FaucetRow(props: {
           <p className="mt-0.5 truncate text-xs text-slate-400">{props.name}</p>
           <p className="mono mt-0.5 text-xs text-slate-500">{shortAddr(props.token)}</p>
         </div>
-        <button
-          className="btn-primary shrink-0 text-xs"
-          disabled={props.disabled || isPending}
-          onClick={onMint}
-        >
-          {isPending && tx.kind === "pending" ? "Minting…" : "Claim 1,000,000"}
-        </button>
+        {props.faucetable ? (
+          <button
+            className="btn-primary shrink-0 text-xs"
+            disabled={props.disabled || isPending}
+            onClick={onMint}
+          >
+            {isPending && tx.kind === "pending" ? "Minting…" : "Claim 1,000,000"}
+          </button>
+        ) : (
+          <span className="badge bg-slate-500/15 text-slate-400 shrink-0 text-xs">
+            restricted
+          </span>
+        )}
       </div>
 
       {address && (
