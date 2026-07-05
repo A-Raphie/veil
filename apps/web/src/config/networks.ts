@@ -73,6 +73,3 @@ export function buildZamaConfig(wagmiConfig: ReturnType<typeof buildWagmiConfig>
     },
   });
 }
-
-export type WagmiConfig = ReturnType<typeof buildWagmiConfig>;
-export type ZamaConfig = ReturnType<typeof buildZamaConfig>;

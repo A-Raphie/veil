@@ -7,6 +7,7 @@
 import { Hero } from "@/components/hero";
 import { HowItWorks } from "@/components/how-it-works";
 import { WrapperInspector } from "@/components/wrapper-inspector";
+import { AddPairForm } from "@/components/add-pair-form";
 import { WrongNetworkBanner } from "@/components/wrong-network-banner";
 import { SkeletonPairGrid } from "@/components/skeleton";
 import { useRegistryPairs } from "@/lib/registry";
@@ -14,7 +15,7 @@ import { useActiveNetwork } from "@/lib/use-active-network";
 import { shortAddr, explorerAddressUrl } from "@/lib/format";
 import { NETWORKS } from "@wrapper-registry/contracts";
 import { Copy } from "@/components/copy";
-import { Sparkles, ShieldCheck, ShieldOff, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Sparkles, ShieldCheck, ShieldOff, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye } from "lucide-react";
 import Link from "next/link";
 
 export default function RegistryPage() {
@@ -394,6 +395,11 @@ function RegistrySection() {
       {pairs && pairs.length === 0 && (
         <div className="mt-6 card text-sm text-slate-400">No pairs found on this network.</div>
       )}
+
+      {/* Extensibility: in-browser admin UI for adding custom pairs */}
+      <div className="mt-6">
+        <AddPairForm />
+      </div>
       </div>
     </section>
   );

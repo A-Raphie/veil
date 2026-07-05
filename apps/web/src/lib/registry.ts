@@ -11,12 +11,13 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-// Build-time import of the optional local pairs config. Exported from the
-// registry-config package (see its package.json "./example"). To customize,
-// copy pairs.local.example.json → packages/registry-config/pairs.local.json
-// and point this import at "./local".
-import localConfigRaw from "@wrapper-registry/registry-config/example";
+import { useMemo, useState, useEffect } from "react";
+// Build-time import of the local pairs config. This file is written by
+// `pnpm add-pair` (packages/registry-config/scripts/add-pair.cjs) and is the
+// "custom/dev-only pairs" half of the hybrid registry model. It starts empty
+// ({ pairs: [] }) and grows as users add their own ERC-20 ↔ ERC-7984 pairs.
+// The export is declared in apps/web/src/types/local-config.d.ts.
+import localConfigRaw from "@wrapper-registry/registry-config/local";
 import {
   NETWORKS,
   registryAbi,
@@ -61,8 +62,37 @@ function loadLocalPairs(): LocalPair[] {
   }
 }
 
-/** Static fallback metadata keyed by confidentialToken address (lowercased). */
-const FALLBACK_META = new Map<string, { symbol: string; name: string; decimals: number }>();
+/**
+ * UI-added pairs persisted in localStorage (the "admin UI" extensibility path).
+ * Read inside a component (client-only); returns [] during SSR.
+ */
+function useUiPairs(): LocalPair[] {
+  const [pairs, setPairs] = useState<LocalPair[]>([]);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("veil:local-pairs");
+      if (!raw) return;
+      setPairs(parseLocalConfig(raw));
+    } catch {
+      /* malformed storage — ignore */
+    }
+    const onChanged = () => {
+      try {
+        const raw = window.localStorage.getItem("veil:local-pairs");
+        setPairs(raw ? parseLocalConfig(raw) : []);
+      } catch {
+        setPairs([]);
+      }
+    };
+    window.addEventListener("veil:local-pairs-changed", onChanged);
+    window.addEventListener("storage", onChanged);
+    return () => {
+      window.removeEventListener("veil:local-pairs-changed", onChanged);
+      window.removeEventListener("storage", onChanged);
+    };
+  }, []);
+  return pairs;
+}
 
 function buildFallback(network: NetworkKey): Map<string, { symbol: string; name: string; decimals: number; faucetable: boolean }> {
   const map = new Map<string, { symbol: string; name: string; decimals: number; faucetable: boolean }>();
@@ -84,6 +114,7 @@ export function useRegistryPairs(network: NetworkKey) {
   const client = usePublicClient({ chainId: NETWORKS[network].chainId });
   const fallback = useMemo(() => buildFallback(network), [network]);
   const localPairs = useMemo(() => loadLocalPairs(), []);
+  const uiPairs = useUiPairs();
 
   return useQuery<UnifiedPair[]>({
     queryKey: ["registry-pairs", network],
@@ -142,11 +173,28 @@ export function useRegistryPairs(network: NetworkKey) {
         }
       }
 
-      // --- 2. Local overrides (secondary) ---
+      // --- 2. Local JSON-config overrides (secondary) ---
       const seen = new Set(out.map((p) => normalizeAddress(p.confidentialToken)));
       for (const lp of localPairs) {
         const key = normalizeAddress(lp.confidentialToken);
         if (seen.has(key)) continue; // registry wins on collision
+        out.push({
+          symbol: lp.symbol,
+          name: lp.name,
+          decimals: lp.decimals,
+          confidentialToken: lp.confidentialToken,
+          underlying: lp.underlying,
+          faucetable: lp.faucetable,
+          source: "local",
+          isValid: true,
+        });
+        seen.add(key);
+      }
+
+      // --- 3. UI-added pairs from localStorage (tertiary, admin UI path) ---
+      for (const lp of uiPairs) {
+        const key = normalizeAddress(lp.confidentialToken);
+        if (seen.has(key)) continue; // higher layers win on collision
         out.push({
           symbol: lp.symbol,
           name: lp.name,

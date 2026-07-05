@@ -32,7 +32,7 @@ import { humanizeError } from "@/lib/errors";
 import { pushToast } from "@/components/toast";
 import { WrongNetworkBanner } from "@/components/wrong-network-banner";
 import { Alert } from "@/components/alert";
-import { Lock, Unlock, ScanSearch, KeyRound } from "lucide-react";
+import { Lock, Unlock, ScanSearch } from "lucide-react";
 import { Copy } from "@/components/copy";
 import { Skeleton } from "@/components/skeleton";
 

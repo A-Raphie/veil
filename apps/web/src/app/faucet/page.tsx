@@ -8,8 +8,7 @@
  */
 
 import { useState } from "react";
-import { useAccount, useWriteContract, useReadContract, useSendCalls } from "wagmi";
-import { encodeFunctionData } from "viem";
+import { useAccount, useWriteContract, useReadContract } from "wagmi";
 import { formatUnits, shortAddr } from "@/lib/format";
 import { humanizeError } from "@/lib/errors";
 import { pushToast } from "@/components/toast";
@@ -168,55 +167,40 @@ function ClaimAllButton(props: {
   pairs: { underlying: Address; symbol: string; decimals: number }[];
 }) {
   const { address } = useAccount();
-  const { sendCallsAsync } = useSendCalls();
   const { writeContractAsync } = useWriteContract();
   const [tx, setTx] = useState<TxState>({ kind: "idle" });
-
-  const claimSequential = async () => {
-    const total = props.pairs.length;
-    for (let i = 0; i < total; i++) {
-      const p = props.pairs[i];
-      setTx({ kind: "pending", label: `Claiming ${i + 1}/${total} ${p.symbol}…` });
-      const amount = FAUCET_MINT_AMOUNT * 10n ** BigInt(p.decimals);
-      await writeContractAsync({
-        address: p.underlying,
-        abi: erc20Abi,
-        functionName: "mint",
-        args: [address!, amount],
-      });
-    }
-  };
 
   const onClaimAll = async () => {
     if (!address) {
       pushToast("error", "Connect a wallet first");
       return;
     }
-    setTx({ kind: "pending", label: "Claiming all tokens…" });
+    // Claim each token sequentially, awaiting each receipt. This is slower than
+    // an EIP-5792 bundle but always correct — writeContractAsync resolves only
+    // once the tx is mined, so the success state fires after every mint lands.
+    const total = props.pairs.length;
     try {
-      const calls = props.pairs.map((p) => ({
-        to: p.underlying,
-        data: encodeFunctionData({
+      for (let i = 0; i < total; i++) {
+        const p = props.pairs[i];
+        if (!p) continue;
+        setTx({ kind: "pending", label: `Claiming ${i + 1}/${total} (${p.symbol})…` });
+        const amount = FAUCET_MINT_AMOUNT * 10n ** BigInt(p.decimals);
+        await writeContractAsync({
+          address: p.underlying,
           abi: erc20Abi,
           functionName: "mint",
-          args: [address, FAUCET_MINT_AMOUNT * 10n ** BigInt(p.decimals)],
-        }),
-      }));
-      await sendCallsAsync({ calls });
-    } catch {
-      try {
-        await claimSequential();
-      } catch (err) {
-        setTx({ kind: "error", message: humanizeError(err) });
-        return;
+          args: [address, amount],
+        });
       }
+      setTx({
+        kind: "success",
+        label: `Claimed all ${total} tokens`,
+        network: "sepolia",
+      });
+      pushToast("success", "All tokens claimed successfully");
+    } catch (err) {
+      setTx({ kind: "error", message: humanizeError(err) });
     }
-    setTx({
-      kind: "success",
-      label: `Claimed all ${props.pairs.length} tokens`,
-      network: "sepolia",
-    });
-    pushToast("success", "All tokens claimed successfully");
   };
 
   return (

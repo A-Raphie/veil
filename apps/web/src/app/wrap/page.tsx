@@ -8,7 +8,6 @@
  */
 
 import { useMemo, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { useAccount, useReadContract } from "wagmi";
 import {
   useShield,
@@ -16,7 +15,7 @@ import {
   useConfidentialBalance,
   useHasPermit,
 } from "@zama-fhe/react-sdk";
-import { erc20Abi, type Address } from "@wrapper-registry/contracts";
+import { erc20Abi } from "@wrapper-registry/contracts";
 import { useRegistryPairs, type UnifiedPair } from "@/lib/registry";
 import { useActiveNetwork } from "@/lib/use-active-network";
 import { parseUnits, formatUnits, shortAddr } from "@/lib/format";

@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./example": "./pairs.local.example.json"
+    "./example": "./pairs.local.example.json",
+    "./local": "./pairs.local.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

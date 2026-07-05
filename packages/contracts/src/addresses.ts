@@ -118,6 +118,14 @@ export const NETWORKS: Record<NetworkKey, NetworkAddresses> = {
         underlying: "0xf6Ef9ADB61A48E29E36bc873070A46A3D2667ff3",
         faucetable: false,
       },
+      {
+        symbol: "steakcUSDC",
+        name: "Confidential steakcUSDC (Mock)",
+        decimals: 6,
+        confidentialToken: "0x13F7d34A4f0102734F19E3Ff16e068Fe194B28c4",
+        underlying: "0x6AB54988261AEC573a2CA13cF802d3B1114f864C",
+        faucetable: false,
+      },
     ],
   },
   mainnet: {
