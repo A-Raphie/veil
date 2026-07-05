@@ -36,10 +36,12 @@ export const sepoliaFheChain = {
 /**
  * Mainnet FheChain — the relayer requires an x-api-key. Route through our
  * server-side proxy (api/relayer/[chainId]/route.ts) which injects the key.
+ * Override network RPC to Cloudflare ETH gateway (reliable, no API key).
  */
 export const mainnetFheChain = {
   ...mainnetFhe,
   relayerUrl: "/api/relayer/1",
+  network: "https://cloudflare-eth.com",
 } as const satisfies FheChain;
 
 export const FHE_CHAINS = [sepoliaFheChain, mainnetFheChain] as const;
@@ -54,7 +56,7 @@ export function buildWagmiConfig() {
     multiInjectedProviderDiscovery: true,
     transports: {
       [sepolia.id]: http(),
-      [mainnet.id]: http("https://eth.llamarpc.com"),
+      [mainnet.id]: http("https://cloudflare-eth.com"),
     },
   });
 }
