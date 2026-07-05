@@ -55,6 +55,8 @@ function WrapPageInner() {
   const { isConnected } = useActiveNetwork();
   const param = useSearchParams().get("token");
   const [selected, setSelected] = useState<Address | null>(param as Address | null);
+  const { data: pairs } = useRegistryPairs(useActiveNetwork().network);
+  const effective = selected ?? pairs?.[0]?.confidentialToken ?? null;
 
   return (
     <>
@@ -64,9 +66,9 @@ function WrapPageInner() {
         <div className="card text-sm text-slate-300">Connect a wallet to wrap or unwrap tokens.</div>
       )}
 
-      <TokenPicker selected={selected} onSelect={setSelected} />
+      <TokenPicker selected={effective} onSelect={setSelected} />
 
-      {selected && isConnected && <WrapCard key={selected} wrapper={selected} />}
+      {effective && isConnected && <WrapCard key={effective} wrapper={effective} />}
     </>
   );
 }
