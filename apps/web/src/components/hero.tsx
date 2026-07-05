@@ -40,8 +40,10 @@ export function Hero() {
           </h1>
           <p className="mt-5 max-w-md text-pretty text-base leading-relaxed text-slate-300">
             Every ERC-20 becomes a confidential ERC-7984 token — balances hidden
-            on-chain, decrypted only with your cryptographic permission. No
-            intermediaries. Just math.
+            on-chain, decrypted only with your cryptographic permission.
+          </p>
+          <p className="mt-3 max-w-md text-pretty text-base leading-relaxed text-slate-300">
+            No intermediaries. Just math.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="#registry" className="btn-primary">

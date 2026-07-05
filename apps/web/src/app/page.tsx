@@ -48,10 +48,8 @@ function Manifesto() {
           </span>
         </p>
         <p className="mt-4 max-w-xl text-sm text-slate-400">
-          Veil turns Zama&apos;s on-chain wrapper registry into a product every
-          developer and user can point at — browse, wrap, decrypt, extend. The
-          path of least resistance, not another fragmented set of bespoke
-          wrappers.
+          Veil turns Zama&apos;s on-chain registry into a product anyone can
+          use — browse, wrap, decrypt, extend.
         </p>
       </div>
     </section>
@@ -63,21 +61,21 @@ function ProblemSection() {
   const problems = [
     {
       icon: Layers,
-      stat: "0",
-      label: "standard registry UIs",
-      description: "Zama deployed an on-chain Wrappers Registry contract, but there's no frontend to browse it. Developers and users are left reading contract ABIs.",
+      stat: "1",
+      label: "registry contract",
+      description: "Zama deployed an on-chain Wrappers Registry on Sepolia. No frontend to browse it — developers and users read contract ABIs.",
     },
     {
       icon: Eye,
-      stat: "3+",
-      label: "fragmented wrapper interfaces",
-      description: "Every protocol builds its own wrapper page. No standard way to discover, compare, or use confidential token pairs across the ecosystem.",
+      stat: "5",
+      label: "steps to wrap one token",
+      description: "Find the wrapper. Approve the underlying. Wrap. Decrypt. No faucet, no guided flow, no single place to do it all.",
     },
     {
       icon: AlertTriangle,
-      stat: "47+",
-      label: "steps to wrap one token",
-      description: "Find the wrapper address. Approve the underlying. Wrap. Remember how to decrypt. No faucet, no guided flow, no single place to do it all.",
+      stat: "9",
+      label: "official pairs",
+      description: "Every official pair exists on-chain. None of them walk you through the process.",
     },
   ];
 
@@ -128,7 +126,7 @@ function BuiltFor() {
     {
       icon: ShieldCheck,
       title: "For Auditors",
-      description: "Every pair sourced from the on-chain registry. Source tags distinguish official vs local pairs.",
+      description: "Every pair sourced from the on-chain registry. See which are Zama-verified and which are locally registered.",
     },
   ];
 

@@ -48,8 +48,9 @@ export function WrapperInspector() {
         </h2>
         <p className="mt-1 max-w-xl text-sm text-slate-400">
           Paste any ERC-7984 confidential token address. Public metadata reads
-          instantly; encrypted fields show as ciphertext — that&apos;s FHE
-          working. Connect a wallet only when you want to decrypt a balance.
+          instantly; encrypted fields display as ciphertext handles — exactly
+          what FHE keeps private. Connect a wallet only when you want to decrypt
+          a balance.
         </p>
 
         <div className="mt-6 card space-y-3">
