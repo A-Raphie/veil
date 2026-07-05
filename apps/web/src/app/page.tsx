@@ -147,7 +147,7 @@ function RegistrySection() {
       {pairs && pairs.length > 0 && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pairs.map((p) => (
-            <article key={p.confidentialToken} className="card-hover group flex flex-col gap-3">
+            <article key={p.confidentialToken} className={["card-hover group flex flex-col gap-3", !p.faucetable && "opacity-50"].join(" ")}>
               <header className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-base font-semibold">{p.symbol}</h3>
@@ -210,7 +210,7 @@ function RegistrySection() {
                   <div className="flex items-center justify-between gap-2">
                     <dt className="text-slate-500">Faucet</dt>
                     <dd className={p.faucetable ? "text-brand-300" : "text-slate-500"}>
-                      {p.faucetable ? "mintable" : "—"}
+                      {p.faucetable ? "mintable" : "restricted"}
                     </dd>
                   </div>
                 )}

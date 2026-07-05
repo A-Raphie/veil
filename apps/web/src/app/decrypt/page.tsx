@@ -26,7 +26,7 @@ import {
 import type { Address } from "viem";
 import { useRegistryPairs } from "@/lib/registry";
 import { useActiveNetwork } from "@/lib/use-active-network";
-import { shortAddr } from "@/lib/format";
+import { shortAddr, formatUnits } from "@/lib/format";
 import { checkAddress, addressErrorReason } from "@/lib/address";
 import { humanizeError } from "@/lib/errors";
 import { pushToast } from "@/components/toast";
@@ -106,7 +106,12 @@ function DecryptPageInner() {
 
 function DecryptCard({ token }: { token: Address }) {
   const { address } = useAccount();
+  const { network } = useActiveNetwork();
   const [granted, setGranted] = useState(false);
+
+  const { data: pairs } = useRegistryPairs(network);
+  const pair = pairs?.find((p) => p.confidentialToken.toLowerCase() === token.toLowerCase());
+  const decimals = pair?.decimals ?? 6;
 
   // Detect whether the pasted address is actually an ERC-7984 wrapper via
   // supportsInterface(0x4958f2a4). Gives a clear error BEFORE the permit flow.
@@ -195,7 +200,7 @@ function DecryptCard({ token }: { token: Address }) {
             <Unlock className="h-3.5 w-3.5" /> Decrypted balance
           </div>
           <div className="animate-veil-rise mt-1 font-mono text-3xl font-semibold text-brand-200">
-            {reading ? "decrypting…" : error ? "—" : (balance?.toString() ?? "0")}
+            {reading ? "decrypting…" : error ? "—" : (balance ? formatUnits(balance as bigint, decimals) : "0")}
           </div>
           {error && (
             <p className="mt-2 text-xs text-rose-300">

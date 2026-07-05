@@ -110,6 +110,14 @@ export const NETWORKS: Record<NetworkKey, NetworkAddresses> = {
         underlying: "0x24377AE4AA0C45ecEe71225007f17c5D423dd940",
         faucetable: true,
       },
+      {
+        symbol: "tGBP",
+        name: "Confidential tGBP",
+        decimals: 18,
+        confidentialToken: "0x167DC962808B32CFFFc7e14B5018c0bE06A3A208",
+        underlying: "0xf6Ef9ADB61A48E29E36bc873070A46A3D2667ff3",
+        faucetable: false,
+      },
     ],
   },
   mainnet: {
