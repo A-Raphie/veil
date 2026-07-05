@@ -24,7 +24,6 @@ import {
   SEPOLIA_CHAIN_ID,
   type Address,
 } from "@wrapper-registry/contracts";
-import { NetworkBadge } from "@/components/network-badge";
 import { Coins, Wallet } from "lucide-react";
 import Link from "next/link";
 
@@ -32,22 +31,8 @@ export default function FaucetPage() {
   const { network, isConnected, isSupported } = useActiveNetwork();
   const faucetable = NETWORKS[network].pairs.filter((p) => p.faucetable);
 
-  if (network !== "sepolia") {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4 py-14">
-        <Header />
-        <div className="card text-sm text-slate-300">
-          The faucet is Sepolia-only. Switch networks to claim official cTokenMocks.
-          <div className="mt-3">
-            <NetworkBadge />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-14">
+    <div className="mx-auto max-w-3xl space-y-6 py-[45px]">
       <Header />
 
       <WrongNetworkBanner />

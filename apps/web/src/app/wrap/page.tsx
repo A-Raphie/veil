@@ -30,7 +30,7 @@ import { ArrowLeftRight, ArrowDownUp, Lock, Unlock, ShieldCheck } from "lucide-r
 
 export default function WrapPage() {
   return (
-    <section className="py-14">
+    <section className="py-[45px]">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <WrongNetworkBanner />
 

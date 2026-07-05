@@ -12,39 +12,27 @@
  */
 
 import { http, createConfig } from "wagmi";
-import { sepolia, mainnet } from "wagmi/chains";
+import { sepolia } from "wagmi/chains";
 import { createConfig as createZamaConfig } from "@zama-fhe/react-sdk/wagmi";
 import { web } from "@zama-fhe/sdk/web";
 import {
   sepolia as sepoliaFhe,
-  mainnet as mainnetFhe,
   type FheChain,
 } from "@zama-fhe/sdk/chains";
 
-export const SUPPORTED_CHAINS = [sepolia, mainnet] as const;
+export const SUPPORTED_CHAINS = [sepolia] as const;
 
 /**
  * Sepolia FheChain — the testnet relayer is OPEN (no x-api-key required; the
  * bounty is judged here). Point the SDK straight at the public host. Verified
- * empirically: https://relayer.testnet.zama.org/v2 returns 200/400 without a
- * key (mainnet 403s without one).
+ * empirically: https://relayer.testnet.zama.org/v2 returns 200/400 without a key.
  */
 export const sepoliaFheChain = {
   ...sepoliaFhe,
   relayerUrl: "https://relayer.testnet.zama.org/v2",
 } as const satisfies FheChain;
 
-/**
- * Mainnet FheChain — the mainnet relayer IS gated (needs x-api-key). Route it
- * through our server-side proxy (/api/relayer/1) so the key stays off the client.
- * Sepolia bypasses the proxy entirely.
- */
-export const mainnetFheChain = {
-  ...mainnetFhe,
-  relayerUrl: "/api/relayer/1",
-} as const satisfies FheChain;
-
-export const FHE_CHAINS = [sepoliaFheChain, mainnetFheChain] as const;
+export const FHE_CHAINS = [sepoliaFheChain] as const;
 
 /** wagmi config — the host RPC layer.
  *  multiInjectedProviderDiscovery auto-wires injected wallets (MetaMask etc.)
@@ -56,7 +44,6 @@ export function buildWagmiConfig() {
     multiInjectedProviderDiscovery: true,
     transports: {
       [sepolia.id]: http(),
-      [mainnet.id]: http(),
     },
   });
 }
@@ -71,7 +58,6 @@ export function buildZamaConfig(wagmiConfig: ReturnType<typeof buildWagmiConfig>
     wagmiConfig,
     relayers: {
       [sepoliaFheChain.id]: web(),
-      [mainnetFheChain.id]: web(),
     },
   });
 }
