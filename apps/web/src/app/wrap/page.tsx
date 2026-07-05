@@ -3,11 +3,8 @@
 /**
  * Wrap / Unwrap — the core confidential-token flow.
  *
- * Uses the @zama-fhe/react-sdk high-level hooks:
- *   - useShield({ address: wrapper })  → wrap (ERC-20 → ERC-7984), auto-approves
- *   - useUnshield(wrapper)             → unwrap, orchestrates unwrap + finalize + public-decrypt
- *
- * The wrapper contract IS the confidential token in this SDK (no separate pair).
+ * Every pair gets its own full card in a responsive grid,
+ * matching the registry section layout on the landing page.
  */
 
 import { useMemo, useState, Suspense } from "react";
@@ -19,7 +16,7 @@ import {
   useConfidentialBalance,
   useHasPermit,
 } from "@zama-fhe/react-sdk";
-import { erc20Abi, NETWORKS, type Address } from "@wrapper-registry/contracts";
+import { erc20Abi, type Address } from "@wrapper-registry/contracts";
 import { useRegistryPairs, type UnifiedPair } from "@/lib/registry";
 import { useActiveNetwork } from "@/lib/use-active-network";
 import { parseUnits, formatUnits, shortAddr } from "@/lib/format";
@@ -29,112 +26,101 @@ import { WrongNetworkBanner } from "@/components/wrong-network-banner";
 import { TransactionStatus, type TxState } from "@/components/transaction-status";
 import { Skeleton } from "@/components/skeleton";
 import Link from "next/link";
-import { ArrowLeftRight, ArrowDownUp, Lock, Unlock } from "lucide-react";
+import { ArrowLeftRight, ArrowDownUp, Lock, Unlock, ShieldCheck } from "lucide-react";
 
 export default function WrapPage() {
-  // The header renders in SSR (no useSearchParams); only the interactive
-  // inner part is wrapped in Suspense so it doesn't block static prerender.
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Wrap & Unwrap</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Convert an underlying ERC-20 into its confidential ERC-7984 equivalent and back.
-          Wrapping auto-approves the underlying; unwrapping runs the on-chain two-step
-          (request → public decrypt → finalize) in one click.
-        </p>
-      </header>
-      <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-        <WrapPageInner />
-      </Suspense>
-    </div>
+    <section className="scroll-mt-20 py-14">
+      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
+        <WrongNetworkBanner />
+
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Wrap & <span className="text-slate-500">Unwrap</span>
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-slate-400">
+              Convert an underlying ERC-20 into its confidential ERC-7984 equivalent and back.
+              Wrapping auto-approves the underlying; unwrapping runs the on-chain two-step
+              (request → decrypt → finalize) in one click.
+            </p>
+          </div>
+        </div>
+
+        <Suspense fallback={<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}</div>}>
+          <WrapPageInner />
+        </Suspense>
+      </div>
+    </section>
   );
 }
 
 function WrapPageInner() {
   const { isConnected } = useActiveNetwork();
-  const param = useSearchParams().get("token");
-  const [selected, setSelected] = useState<Address | null>(param as Address | null);
+  const { network } = useActiveNetwork();
+  const { data: pairs, isLoading, isError, refetch } = useRegistryPairs(network);
 
   return (
     <>
-      <WrongNetworkBanner />
-
       {!isConnected && (
-        <div className="card text-sm text-slate-300">Connect a wallet to wrap or unwrap tokens.</div>
+        <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-amber-200/80">
+          Connect a wallet on Sepolia to wrap or unwrap. Browsing the registry needs no wallet.
+        </p>
       )}
 
-      <TokenGrid selected={selected} onSelect={setSelected} />
+      {isLoading && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 w-full" />
+          ))}
+        </div>
+      )}
 
-      {selected && isConnected && <WrapCard key={selected} wrapper={selected} />}
+      {isError && (
+        <div className="mt-6 rounded-lg border border-rose-500/40 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+          Couldn&apos;t load registry pairs.
+          <button className="ml-2 underline" onClick={() => refetch()}>Retry</button>
+        </div>
+      )}
+
+      {pairs && pairs.length > 0 && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {pairs.map((p) => (
+            <PairWrapCard key={p.confidentialToken} pair={p} />
+          ))}
+        </div>
+      )}
+
+      {pairs && pairs.length === 0 && (
+        <div className="mt-6 card text-sm text-slate-400">No pairs found on this network.</div>
+      )}
     </>
   );
 }
 
-function TokenGrid({
-  selected,
-  onSelect,
-}: {
-  selected: Address | null;
-  onSelect: (a: Address | null) => void;
-}) {
-  const { network } = useActiveNetwork();
-  const { data: pairs, isLoading } = useRegistryPairs(network);
-
-  if (isLoading) return <Skeleton className="h-40 w-full" />;
-
-  return (
-    <section className="grid gap-3 sm:grid-cols-2">
-      {pairs?.map((p) => (
-        <button
-          key={p.confidentialToken}
-          className={[
-            "card text-left transition-colors",
-            selected === p.confidentialToken
-              ? "border-brand-500/50 bg-brand-950/20"
-              : "hover:border-white/10",
-          ].join(" ")}
-          onClick={() => onSelect(p.confidentialToken)}
-        >
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{p.symbol}</span>
-            <span className="text-xs text-slate-500">ERC-7984</span>
-          </div>
-          <p className="mt-0.5 truncate text-xs text-slate-400">{p.name}</p>
-          <p className="mono mt-0.5 text-xs text-slate-500">
-            {shortAddr(p.confidentialToken)}
-          </p>
-        </button>
-      ))}
-    </section>
-  );
-}
-
-function WrapCard({ wrapper }: { wrapper: Address }) {
+function PairWrapCard({ pair }: { pair: UnifiedPair }) {
   const { network } = useActiveNetwork();
   const { address } = useAccount();
   const [amount, setAmount] = useState("");
   const [mode, setMode] = useState<"wrap" | "unwrap">("wrap");
   const [tx, setTx] = useState<TxState>({ kind: "idle" });
 
-  const { mutateAsync: shield, isPending: shielding } = useShield({ address: wrapper });
-  const { mutateAsync: unshield, isPending: unshielding } = useUnshield(wrapper);
+  const { mutateAsync: shield, isPending: shielding } = useShield({ address: pair.confidentialToken });
+  const { mutateAsync: unshield, isPending: unshielding } = useUnshield(pair.confidentialToken);
 
-  const pair = useSelectedPair(wrapper);
-  const decimals = pair?.decimals ?? 6;
+  const decimals = pair.decimals;
 
   const { data: underlyingBalance, isLoading: balLoading } = useReadContract({
-    address: pair?.underlying,
+    address: pair.underlying,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [address ?? "0x0"],
-    query: { enabled: !!address && !!pair?.underlying },
+    query: { enabled: !!address },
   });
 
-  // Confidential balance (only meaningful in unwrap mode; needs a permit).
-  const { data: hasPermit } = useHasPermit({ contractAddresses: [wrapper] });
+  const { data: hasPermit } = useHasPermit({ contractAddresses: [pair.confidentialToken] });
   const { data: confidentialBalance } = useConfidentialBalance({
-    address: wrapper,
+    address: pair.confidentialToken,
     account: address ?? "0x0000000000000000000000000000000000000000",
   });
 
@@ -148,6 +134,8 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
 
   const pending = mode === "wrap" ? shielding : unshielding;
 
+  const inputId = `wrap-amount-${pair.confidentialToken}`;
+
   const onWrap = async () => {
     if (!parsedAmount || parsedAmount <= 0n) {
       pushToast("error", "Enter a valid amount");
@@ -160,7 +148,7 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
         kind: "success",
         txHash,
         network,
-        label: `Wrapped ${amount} ${pair?.symbol}`,
+        label: `Wrapped ${amount} ${pair.symbol}`,
       });
       setAmount("");
     } catch (err) {
@@ -186,7 +174,7 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
         kind: "success",
         txHash,
         network,
-        label: `Unwrapped ${amount} c${pair?.symbol}`,
+        label: `Unwrapped ${amount} c${pair.symbol}`,
       });
       setAmount("");
     } catch (err) {
@@ -195,9 +183,18 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
   };
 
   return (
-    <div className="card space-y-4">
-      {/* mode toggle */}
-      <div className="flex rounded-lg border border-white/5 p-1 text-sm" role="tablist" aria-label="Operation">
+    <article className={`card flex flex-col gap-3 ${!pair.faucetable ? "opacity-50" : ""}`}>
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-base font-semibold">{pair.symbol}</h3>
+          <p className="text-xs text-slate-400">{pair.name}</p>
+        </div>
+        <span className="badge bg-brand-500/15 text-brand-300">
+          <ShieldCheck className="h-3 w-3" /> ERC-7984
+        </span>
+      </header>
+
+      <div className="flex rounded-lg border border-white/5 p-1 text-sm" role="tablist" aria-label={`${pair.symbol} operation`}>
         <button
           role="tab"
           aria-selected={mode === "wrap"}
@@ -205,10 +202,7 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
             mode === "wrap" ? "bg-brand-600 text-white" : "text-slate-300 hover:text-white",
           ].join(" ")}
-          onClick={() => {
-            setMode("wrap");
-            setTx({ kind: "idle" });
-          }}
+          onClick={() => { setMode("wrap"); setTx({ kind: "idle" }); }}
         >
           <ArrowLeftRight className="h-3.5 w-3.5" /> Wrap
         </button>
@@ -219,16 +213,12 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
             mode === "unwrap" ? "bg-brand-600 text-white" : "text-slate-300 hover:text-white",
           ].join(" ")}
-          onClick={() => {
-            setMode("unwrap");
-            setTx({ kind: "idle" });
-          }}
+          onClick={() => { setMode("unwrap"); setTx({ kind: "idle" }); }}
         >
           <ArrowDownUp className="h-3.5 w-3.5" /> Unwrap
         </button>
       </div>
 
-      {/* balances */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-white/5 bg-black/20 p-3">
           <p className="flex items-center gap-1 text-xs text-slate-500">
@@ -238,7 +228,7 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
             <Skeleton className="mt-1 h-4 w-24" />
           ) : (
             <p className="mono mt-1 text-sm text-slate-200">
-              {formatUnits(underlyingBalance as bigint ?? 0n, decimals)} {pair?.symbol}
+              {formatUnits(underlyingBalance as bigint ?? 0n, decimals)} {pair.symbol}
             </p>
           )}
         </div>
@@ -248,7 +238,7 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
           </p>
           {mode === "unwrap" && hasPermit && confidentialBalance !== undefined ? (
             <p className="mono mt-1 text-sm text-brand-300">
-              {formatUnits(confidentialBalance as bigint, decimals)} c{pair?.symbol}
+              {formatUnits(confidentialBalance as bigint, decimals)} c{pair.symbol}
             </p>
           ) : (
             <p className="mono mt-1 text-sm text-violet-300/60">encrypted</p>
@@ -256,13 +246,12 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
         </div>
       </div>
 
-      {/* amount input */}
       <div>
-        <label htmlFor="amount" className="mb-1 block text-xs font-medium text-slate-400">
+        <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-slate-400">
           {mode === "wrap" ? "Underlying amount" : "Confidential amount to unwrap"}
         </label>
         <input
-          id="amount"
+          id={inputId}
           className="input mono"
           inputMode="decimal"
           placeholder="0.0"
@@ -282,33 +271,21 @@ function WrapCard({ wrapper }: { wrapper: Address }) {
         onClick={mode === "wrap" ? onWrap : onUnwrap}
       >
         {pending
-          ? mode === "wrap"
-            ? "Wrapping…"
-            : "Unwrapping…"
-          : mode === "wrap"
-            ? `Wrap ${pair?.symbol ?? ""}`
-            : `Unwrap c${pair?.symbol ?? ""}`}
+          ? mode === "wrap" ? "Wrapping…" : "Unwrapping…"
+          : mode === "wrap" ? `Wrap ${pair.symbol}` : `Unwrap c${pair.symbol}`}
       </button>
 
       <TransactionStatus state={tx} />
 
-      {pair && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>ERC-20 ↔ ERC-7984</span>
-          <Link
-            className="underline decoration-dotted hover:text-slate-300"
-            href={`/decrypt?token=${wrapper}`}
-          >
-            View confidential balance
-          </Link>
-        </div>
-      )}
-    </div>
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>ERC-20 ↔ ERC-7984</span>
+        <Link
+          className="underline decoration-dotted hover:text-slate-300"
+          href={`/decrypt?token=${pair.confidentialToken}`}
+        >
+          View confidential balance
+        </Link>
+      </div>
+    </article>
   );
-}
-
-function useSelectedPair(wrapper: Address): UnifiedPair | undefined {
-  const { network } = useActiveNetwork();
-  const { data: pairs } = useRegistryPairs(network);
-  return pairs?.find((p) => p.confidentialToken.toLowerCase() === wrapper.toLowerCase());
 }
