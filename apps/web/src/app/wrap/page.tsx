@@ -166,7 +166,7 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
   };
 
   return (
-    <article className={`card flex flex-col gap-2 ${!pair.faucetable ? "opacity-50" : ""}`}>
+    <article className="card flex flex-col gap-2">
       <header className="flex items-center justify-between gap-2">
         <span className="font-semibold">{pair.symbol}</span>
         <span className="badge bg-brand-500/15 text-brand-300">
