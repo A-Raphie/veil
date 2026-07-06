@@ -20,8 +20,7 @@ import { usePublicClient } from "wagmi";
 import { useLocalPairs } from "@/lib/use-local-pairs";
 import { checkAddress, addressErrorReason } from "@/lib/address";
 import { pushToast } from "@/components/toast";
-import { Plus, ChevronDown, ChevronUp, Trash2, ShieldCheck, Sparkles, CheckCircle2, XCircle } from "lucide-react";
-import { shortAddr } from "@/lib/format";
+import { Plus, ChevronDown, ChevronUp, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { wrapperAbi, erc20Abi } from "@wrapper-registry/contracts";
 
 const ERC20_READ_ABI = [
@@ -32,7 +31,7 @@ const ERC20_READ_ABI = [
 
 export function AddPairForm() {
   const [open, setOpen] = useState(false);
-  const { pairs, addPair, removePair } = useLocalPairs();
+  const { addPair } = useLocalPairs();
   const client = usePublicClient();
 
   // form state
@@ -300,34 +299,6 @@ export function AddPairForm() {
             {validating ? "Validating on-chain…" : "Add pair"}
           </button>
         </form>
-      )}
-
-      {/* Manage existing UI-added pairs */}
-      {pairs.length > 0 && (
-        <div className="space-y-2 border-t pt-3">
-          <p className="text-xs font-medium text-slate-400">Your custom pairs</p>
-          {pairs.map((p) => (
-            <div key={p.confidentialToken} className="flex items-center justify-between gap-2 text-xs">
-              <span className="flex items-center gap-2">
-                <span className="badge bg-violet-500/15 text-violet-300">
-                  <ShieldCheck className="h-3 w-3" /> local
-                </span>
-                <span className="font-medium">{p.symbol}</span>
-                <span className="mono text-slate-500">{shortAddr(p.confidentialToken)}</span>
-              </span>
-              <button
-                className="text-slate-500 hover:text-rose-400"
-                onClick={() => {
-                  removePair(p.confidentialToken);
-                  pushToast("info", `Removed ${p.symbol}`);
-                }}
-                aria-label={`Remove ${p.symbol}`}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
       )}
     </div>
   );
