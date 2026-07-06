@@ -39,8 +39,9 @@ Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Runs on **Sepolia**.
 ## See it live
 
 - **dApp:** https://veil-registry.vercel.app
+- **GitHub:** https://github.com/A-Raphie/veil
 - **Video demo:** _\<add your X/Loom link\>_
-- **X thread:** _\<add your X thread link\>_
+- **X article:** _\<add your X article link\>_
 - **Network:** Sepolia (11155111)
 
 ---
@@ -116,7 +117,7 @@ sequenceDiagram
 | Route | Feature | What it does |
 |---|---|---|
 | `/` | **Registry browser** | Reads the live on-chain Wrappers Registry and renders every ERC-20 ↔ ERC-7984 pair with full metadata + addresses. Merges any local dev pairs. |
-| `/faucet` | **Sepolia faucet** | Mints the 8 official `cTokenMock` underlying tokens (1,000,000 units/call) with per-token balance + tx status. |
+| `/faucet` | **Sepolia faucet** | Mints the official `cTokenMock` underlying tokens (1,000,000 units/call) with per-token balance + tx status. |
 | `/wrap` | **Wrap & unwrap** | Wraps ERC-20 → ERC-7984 (auto-approves) and unwraps back — the SDK orchestrates the on-chain two-step (request → public decrypt → finalize) in one click. Live balance panels for both sides. |
 | `/decrypt` | **Decrypt balance** | Decrypts the connected wallet's balance for any ERC-7984 token via a one-time EIP-712 permit. Paste-an-address or pick from the registry; input is syntactically validated. |
 
@@ -328,13 +329,13 @@ All 8 official Sepolia cTokenMocks are surfaced and functional:
 
 - **Wrap:** `useShield` with `approvalStrategy: "exact"` handles approve + wrap atomically via the SDK
 - **Unwrap:** `useUnshield` with staged callbacks (`onUnwrapSubmitted` → `onFinalizeSubmitted`) for the two-step unshield flow
-- **Decrypt:** EIP-712 permit via `useGrantPermit`, balance read via `useConfidentialBalance`, ERC-7984 interface check via `supportsInterface(0x4958f2a4)`
+- **Decrypt:** EIP-712 permit via `useGrantPermit`, balance read via `useConfidentialBalance`, contract validation via `name()`/`decimals()` read (supportsInterface reverts on FHE ACL-gated wrappers)
 - **On-chain proof:** 4 real Sepolia tx hashes with block numbers and explorer links
 
 ### Extensibility
 
 Three documented paths for adding pairs:
-1. **In-browser UI** — "Add a custom pair" form with on-chain validation
+1. **In-browser UI** — "Add a custom pair" form that auto-fills name, symbol, decimals, and underlying from the wrapper contract, then validates on-chain that both addresses are real contracts
 2. **CLI** — `pnpm add-pair --symbol MYTKN --confidential 0x... --underlying 0x...`
 3. **Manual JSON** — edit `pairs.local.json` directly
 
@@ -404,7 +405,3 @@ All paths share `parseLocalConfig` validation. On collision, the on-chain regist
 - [Confidential Wrappers Registry](https://docs.zama.org/protocol/protocol-apps/confidential-tokens/wrapper-registry) — on-chain pair directory.
 
 ---
-
-## Built for
-
-Zama Confidential Wrappers Registry Bounty — Sepolia track.
