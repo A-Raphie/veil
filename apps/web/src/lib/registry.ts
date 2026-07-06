@@ -195,7 +195,16 @@ export function useRegistryPairs(network: NetworkKey) {
       }
 
       // --- 3. UI-added pairs from localStorage (tertiary, admin UI path) ---
-      for (const lp of uiPairs) {
+      // Read localStorage DIRECTLY here (not from React state) so we always
+      // get fresh data when invalidateQueries refires this queryFn.
+      let liveUiPairs: LocalPair[] = [];
+      try {
+        const raw = typeof window !== "undefined" ? window.localStorage.getItem("veil:local-pairs") : null;
+        if (raw) liveUiPairs = parseLocalConfig(raw);
+      } catch {
+        /* malformed storage — ignore */
+      }
+      for (const lp of liveUiPairs) {
         const key = normalizeAddress(lp.confidentialToken);
         if (seen.has(key)) continue; // higher layers win on collision
         out.push({

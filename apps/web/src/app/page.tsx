@@ -212,7 +212,7 @@ function RegistrySection() {
       {pairs && pairs.length > 0 && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pairs.map((p) => (
-            <article key={p.confidentialToken} className={["card-hover group flex flex-col gap-3", !p.isValid && "opacity-40", !p.faucetable && p.isValid && "opacity-50"].join(" ")}>
+            <article key={p.confidentialToken} className={["card-hover group flex flex-col gap-3", !p.isValid && "opacity-40"].join(" ")}>
               <header className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-base font-semibold">{p.symbol}</h3>
