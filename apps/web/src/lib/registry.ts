@@ -116,8 +116,11 @@ export function useRegistryPairs(network: NetworkKey) {
   const localPairs = useMemo(() => loadLocalPairs(), []);
   const uiPairs = useUiPairs();
 
+  // Include uiPairs in the queryKey so React Query refires when localStorage
+  // pairs change — without this, the query captures a stale uiPairs closure
+  // and newly-added pairs don't appear until a manual refetch.
   return useQuery<UnifiedPair[]>({
-    queryKey: ["registry-pairs", network],
+    queryKey: ["registry-pairs", network, uiPairs],
     queryFn: async () => {
       const registry = NETWORKS[network].registry;
       const out: UnifiedPair[] = [];
