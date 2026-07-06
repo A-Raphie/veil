@@ -2,12 +2,17 @@
 
 /**
  * AddPairForm — the in-browser admin UI for adding custom ERC-20 ↔ ERC-7984
- * pairs. Pairs are validated (address format, decimals, duplicates) and
+ * pairs. Pairs are validated on-chain (name/symbol/decimals must respond) and
  * persisted to localStorage, so they survive page refresh and immediately
  * appear in the registry grid with a "local" badge.
  *
- * This is the "admin UI" extensibility path explicitly allowed by the bounty
- * spec. The CLI (pnpm add-pair) remains as the power-user / build-time path.
+ * Auto-fill: when the user pastes a valid wrapper address, the form fetches
+ * name/symbol/decimals from the contract and populates the fields automatically.
+ * The user only needs to paste the underlying ERC-20 address.
+ *
+ * Note: supportsInterface() reverts on Zama FHEVM wrappers (FHE ACL-gated),
+ * so we validate by reading name/symbol/decimals instead — if those respond,
+ * it's a valid ERC-7984 wrapper.
  */
 
 import { useState } from "react";
@@ -15,47 +20,15 @@ import { usePublicClient } from "wagmi";
 import { useLocalPairs } from "@/lib/use-local-pairs";
 import { checkAddress, addressErrorReason } from "@/lib/address";
 import { pushToast } from "@/components/toast";
-import { Plus, ChevronDown, ChevronUp, Trash2, ShieldCheck } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Trash2, ShieldCheck, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { shortAddr } from "@/lib/format";
+import { wrapperAbi, erc20Abi } from "@wrapper-registry/contracts";
 
-const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
-
-// ERC interface IDs for on-chain validation.
-const ERC7984_INTERFACE_ID = "0x4958f2a4";
-const ERC20_INTERFACE_ID = "0x36372b07";
-
-const SUPPORTS_INTERFACE_ABI = [
-  {
-    type: "function",
-    name: "supportsInterface",
-    stateMutability: "view",
-    inputs: [{ name: "interfaceId", type: "bytes4" }],
-    outputs: [{ name: "", type: "bool" }],
-  },
+const ERC20_READ_ABI = [
+  { type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint8" }] },
 ] as const;
-
-/**
- * Check whether an address implements an ERC interface via supportsInterface.
- * Returns true/false, or null if the call fails (EOA, no code, broken contract).
- */
-async function checkInterface(
-  client: ReturnType<typeof usePublicClient> extends infer C ? C : never,
-  address: string,
-  interfaceId: string,
-): Promise<boolean | null> {
-  if (!client) return null;
-  try {
-    const result = await client.readContract({
-      address: address as `0x${string}`,
-      abi: SUPPORTS_INTERFACE_ABI,
-      functionName: "supportsInterface",
-      args: [interfaceId as `0x${string}`],
-    });
-    return result as boolean;
-  } catch {
-    return null;
-  }
-}
 
 export function AddPairForm() {
   const [open, setOpen] = useState(false);
@@ -68,9 +41,10 @@ export function AddPairForm() {
   const [decimals, setDecimals] = useState("6");
   const [confidential, setConfidential] = useState("");
   const [underlying, setUnderlying] = useState("");
-  const [faucetable, setFaucetable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+  const [underlyingCheck, setUnderlyingCheck] = useState<{ state: "idle" | "checking" | "valid" | "invalid"; name?: string }>({ state: "idle" });
 
   const resetForm = () => {
     setSymbol("");
@@ -78,15 +52,60 @@ export function AddPairForm() {
     setDecimals("6");
     setConfidential("");
     setUnderlying("");
-    setFaucetable(false);
     setError(null);
+    setAutoFilled(false);
+    setUnderlyingCheck({ state: "idle" });
+  };
+
+  // Auto-fill name/symbol/decimals when the wrapper address is valid (42 chars).
+  // Fires on every change; the reads are cheap and cached by the RPC layer.
+  const onConfidentialChange = async (val: string) => {
+    setConfidential(val);
+    setAutoFilled(false);
+    setUnderlying("");
+    const check = checkAddress(val);
+    if (!check.ok || !client) return;
+    try {
+      const [n, s, d, u] = await Promise.all([
+        client.readContract({ address: check.address, abi: wrapperAbi, functionName: "name" }),
+        client.readContract({ address: check.address, abi: wrapperAbi, functionName: "symbol" }),
+        client.readContract({ address: check.address, abi: wrapperAbi, functionName: "decimals" }),
+        client.readContract({ address: check.address, abi: wrapperAbi, functionName: "underlying" }),
+      ]);
+      setName(n as string);
+      setSymbol((s as string).replace(/^c/, "").toUpperCase() || (s as string).toUpperCase());
+      setDecimals(String(d));
+      setUnderlying(u as string);
+      setAutoFilled(true);
+    } catch {
+      // not a valid wrapper or RPC failed — user types manually
+    }
+  };
+
+  // Reverse check: validate the underlying address is a real ERC-20.
+  const onUnderlyingChange = async (val: string) => {
+    setUnderlying(val);
+    setUnderlyingCheck({ state: "idle" });
+    const check = checkAddress(val);
+    if (!check.ok || !client) return;
+    setUnderlyingCheck({ state: "checking" });
+    try {
+      const tokenName = await client.readContract({
+        address: check.address,
+        abi: ERC20_READ_ABI,
+        functionName: "name",
+      });
+      setUnderlyingCheck({ state: "valid", name: tokenName as string });
+    } catch {
+      setUnderlyingCheck({ state: "invalid" });
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validate addresses
+    // Validate addresses (format)
     const cCheck = checkAddress(confidential);
     if (!cCheck.ok && cCheck.reason !== "empty") {
       setError(`Wrapper address: ${addressErrorReason(cCheck.reason)}`);
@@ -115,28 +134,25 @@ export function AddPairForm() {
       return;
     }
 
-    // --- On-chain interface validation ---
-    // Reject addresses that aren't real ERC-7984 / ERC-20 contracts so the user
-    // doesn't add a garbage pair that fails on wrap/decrypt.
+    // --- On-chain validation ---
+    // supportsInterface reverts on Zama wrappers (FHE ACL-gated), so we validate
+    // by reading name/symbol/decimals. If those respond, it's a valid ERC-7984.
     setValidating(true);
     setError(null);
     try {
-      const isErc7984 = await checkInterface(client, cCheck.address, ERC7984_INTERFACE_ID);
-      if (isErc7984 !== true) {
-        setError(
-          isErc7984 === null
-            ? "No contract found at the wrapper address (is it an EOA?). Check the address and network."
-            : "This address does not implement the ERC-7984 interface. Are you sure it's a confidential wrapper?",
-        );
+      // Check wrapper: must respond to name() + symbol() + decimals()
+      try {
+        await client!.readContract({ address: cCheck.address, abi: wrapperAbi, functionName: "name" });
+        await client!.readContract({ address: cCheck.address, abi: wrapperAbi, functionName: "decimals" });
+      } catch {
+        setError("No valid ERC-7984 wrapper found at this address. Are you sure it's a confidential wrapper contract?");
         return;
       }
-      const isErc20 = await checkInterface(client, uCheck.address, ERC20_INTERFACE_ID);
-      if (isErc20 !== true) {
-        setError(
-          isErc20 === null
-            ? "No contract found at the underlying address (is it an EOA?)."
-            : "The underlying address does not implement the ERC-20 interface.",
-        );
+      // Check underlying: must respond to decimals() (standard ERC-20)
+      try {
+        await client!.readContract({ address: uCheck.address, abi: ERC20_READ_ABI, functionName: "decimals" });
+      } catch {
+        setError("No valid ERC-20 contract found at the underlying address.");
         return;
       }
     } finally {
@@ -149,7 +165,7 @@ export function AddPairForm() {
       decimals: dec,
       confidentialToken: cCheck.address,
       underlying: uCheck.address,
-      faucetable,
+      faucetable: false,
     });
 
     if (result.ok) {
@@ -179,10 +195,29 @@ export function AddPairForm() {
       {open && (
         <form onSubmit={onSubmit} className="space-y-3">
           <p className="text-xs text-slate-400">
-            Add any ERC-20 ↔ ERC-7984 wrapper pair. It appears in the grid with a
-            &ldquo;local&rdquo; badge and works with wrap/unwrap/decrypt. Pairs
-            persist in your browser (localStorage).
+            Add any ERC-20 ↔ ERC-7984 wrapper pair. Paste the wrapper address and
+            Veil auto-fills the details from the contract. Pairs persist in your
+            browser (localStorage).
           </p>
+
+          <div>
+            <label htmlFor="ap-confidential" className="mb-1 block text-xs font-medium text-slate-400">
+              ERC-7984 wrapper address *
+            </label>
+            <input
+              id="ap-confidential"
+              className="input mono"
+              placeholder="0x…"
+              value={confidential}
+              onChange={(e) => onConfidentialChange(e.target.value)}
+              spellCheck={false}
+            />
+            {autoFilled && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-brand-400">
+                <Sparkles className="h-3 w-3" /> Auto-filled from contract
+              </p>
+            )}
+          </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -194,7 +229,7 @@ export function AddPairForm() {
                 className="input"
                 placeholder="e.g. USDC"
                 value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
+                onChange={(e) => { setSymbol(e.target.value); setAutoFilled(false); }}
                 maxLength={12}
               />
             </div>
@@ -207,41 +242,39 @@ export function AddPairForm() {
                 className="input"
                 placeholder="e.g. Confidential USDC"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setAutoFilled(false); }}
               />
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="ap-confidential" className="mb-1 block text-xs font-medium text-slate-400">
-                ERC-7984 wrapper address *
-              </label>
-              <input
-                id="ap-confidential"
-                className="input mono"
-                placeholder="0x…"
-                value={confidential}
-                onChange={(e) => setConfidential(e.target.value)}
-                spellCheck={false}
-              />
-            </div>
+          <div className="flex flex-wrap items-end gap-4">
             <div>
               <label htmlFor="ap-underlying" className="mb-1 block text-xs font-medium text-slate-400">
                 Underlying ERC-20 address *
               </label>
               <input
                 id="ap-underlying"
-                className="input mono"
+                className="input mono w-64 max-w-full"
                 placeholder="0x…"
                 value={underlying}
-                onChange={(e) => setUnderlying(e.target.value)}
+                onChange={(e) => onUnderlyingChange(e.target.value)}
                 spellCheck={false}
               />
+              {/* Underlying validation badge */}
+              {underlyingCheck.state === "checking" && (
+                <p className="mt-1 text-xs text-slate-500">Checking…</p>
+              )}
+              {underlyingCheck.state === "valid" && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-brand-400">
+                  <CheckCircle2 className="h-3 w-3" /> Valid ERC-20{underlyingCheck.name ? `: ${underlyingCheck.name}` : ""}
+                </p>
+              )}
+              {underlyingCheck.state === "invalid" && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-rose-400">
+                  <XCircle className="h-3 w-3" /> Not a valid ERC-20 contract
+                </p>
+              )}
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-4">
             <div>
               <label htmlFor="ap-decimals" className="mb-1 block text-xs font-medium text-slate-400">
                 Decimals
@@ -256,15 +289,6 @@ export function AddPairForm() {
                 onChange={(e) => setDecimals(e.target.value)}
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400">
-              <input
-                type="checkbox"
-                checked={faucetable}
-                onChange={(e) => setFaucetable(e.target.checked)}
-                className="h-4 w-4 accent-brand-500"
-              />
-              Faucetable (underlying has public <span className="mono">mint()</span>)
-            </label>
           </div>
 
           {error && (

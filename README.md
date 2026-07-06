@@ -24,15 +24,24 @@ Veil turns the registry into a complete dApp. Browse every official wrapper pair
 claim test tokens from the faucet, wrap and unwrap in one click, and decrypt any
 confidential balance — all from a clean UI backed by the official Zama SDK.
 
+```ts
+// Wrap any registry ERC-20 → ERC-7984 in one call
+import { useShield } from "@zama-fhe/react-sdk"
+
+const { shield } = useShield({ address: confidentialToken })
+await shield({ amount: parseUnits("100", 6), approvalStrategy: "exact" })
+```
+
 Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Runs on **Sepolia**.
 
 ---
 
-## Live demo
+## See it live
 
-- **App:** https://veil-registry.vercel.app
-- **Video pitch:** _\<add your X/YouTube/Loom link\>_
-- **Networks:** Sepolia (11155111)
+- **dApp:** https://veil-registry.vercel.app
+- **Video demo:** _\<add your X/Loom link\>_
+- **X thread:** _\<add your X thread link\>_
+- **Network:** Sepolia (11155111)
 
 ---
 
@@ -56,6 +65,48 @@ flowchart LR
     DApp -->|decrypt balance| SDK
     SDK -->|relayer RPC| Relayer
     Relayer --> FHEVM
+```
+
+### Wrap flow (one-click)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant D as Veil dApp
+    participant S as Zama SDK
+    participant R as Relayer
+    participant C as Confidential Wrapper
+
+    U->>D: Enter amount, click "Wrap"
+    D->>D: Pre-flight balance check
+    D->>S: shield({ amount, approvalStrategy: "exact" })
+    S->>C: ERC-20 approve + wrap (atomic)
+    C-->>S: encrypted balance stored on-chain
+    S-->>D: txHash + status
+    D-->>U: Success + explorer link
+```
+
+### Decrypt flow (EIP-712 permit)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant D as Veil dApp
+    participant S as Zama SDK
+    participant R as Relayer
+    participant F as FHEVM
+
+    U->>D: Paste ERC-7984 address
+    D->>D: Validate via name() read
+    D->>S: useGrantPermit()
+    S->>U: Sign EIP-712 permit in wallet
+    U-->>S: permit signature
+    S->>R: Decrypt balance via relayer
+    R->>F: FHE decryption proof
+    F-->>R: decrypted value
+    R-->>S: plaintext balance
+    S-->>D: Display decrypted balance
+    D-->>U: Show balance
 ```
 
 ---
@@ -233,6 +284,23 @@ All three paths are validated (`parseLocalConfig`): bad addresses, duplicate
 wrappers, and out-of-range decimals throw with the offending entry index, so
 misconfigurations fail loudly. On a collision, the on-chain registry wins.
 
+### Worked example: a custom wrapper deployed on Sepolia
+
+We deployed a custom `ConfidentialWrapper` on Sepolia to demonstrate the full
+extensibility flow end-to-end:
+
+| Field | Value |
+|---|---|
+| **Wrapper (ERC-7984)** | [`0x2286e6d1144163d0315977f341d06D8Ce7df5234`](https://sepolia.etherscan.io/address/0x2286e6d1144163d0315977f341d06D8Ce7df5234) |
+| **Underlying (ERC-20)** | [`0x9b5Cd13b8eFbB58Dc25A05CF411D8056058aDFfF`](https://sepolia.etherscan.io/address/0x9b5Cd13b8eFbB58Dc25A05CF411D8056058aDFfF) (USDC Mock) |
+| **Symbol / Name** | cDEMO / Confidential Demo USDC |
+| **Decimals** | 6 |
+
+Deployed via Zama's `protocol-apps` Hardhat task (`task:deployConfidentialWrapper`).
+To add it in the UI: open "Add a custom pair," paste the wrapper address — Veil
+auto-fills name, symbol, decimals, and underlying from the contract, validates
+on-chain, and the pair appears with a `local` badge.
+
 </details>
 
 ---
@@ -248,16 +316,82 @@ misconfigurations fail loudly. On a collision, the on-chain registry wins.
 
 ## Judging alignment
 
-- **Innovation:** Veil makes Zama's Confidential Wrappers Registry usable — a single UI for browsing, claiming, wrapping, unwrapping, and decrypting, where none existed.
-- **Technical implementation:** Full Zama SDK v3 integration — shield/unshield with auto-approve, EIP-712 permit-based decryption, relayer proxy for key isolation, on-chain registry reader with local config merge.
-- **Production readiness:** Zero-config Sepolia flow, COOP/COEP headers, transaction state machine with toast feedback, EIP-55 address validation, test-only guardrails on chain access.
-- **UX:** One-click wrap/unwrap, per-token faucet with balance display, paste-an-address decrypt, inline explorer links on every tx success.
+### Coverage
+
+All 8 official Sepolia cTokenMocks are surfaced and functional:
+- 7 mocked (faucetable): USDC, USDT, WETH, BRON, ZAMA, tGBP (6 dec), XAUt
+- 1 restricted (non-mocked): tGBP (18 dec)
+- Plus 1 community pair: steakcUSDC
+- On-chain registry is the primary source; local config and UI-added pairs merge in
+
+### Correctness
+
+- **Wrap:** `useShield` with `approvalStrategy: "exact"` handles approve + wrap atomically via the SDK
+- **Unwrap:** `useUnshield` with staged callbacks (`onUnwrapSubmitted` → `onFinalizeSubmitted`) for the two-step unshield flow
+- **Decrypt:** EIP-712 permit via `useGrantPermit`, balance read via `useConfidentialBalance`, ERC-7984 interface check via `supportsInterface(0x4958f2a4)`
+- **On-chain proof:** 4 real Sepolia tx hashes with block numbers and explorer links
+
+### Extensibility
+
+Three documented paths for adding pairs:
+1. **In-browser UI** — "Add a custom pair" form with on-chain validation
+2. **CLI** — `pnpm add-pair --symbol MYTKN --confidential 0x... --underlying 0x...`
+3. **Manual JSON** — edit `pairs.local.json` directly
+
+All paths share `parseLocalConfig` validation. On collision, the on-chain registry wins.
+
+### UX
+
+- One-click wrap/unwrap with pre-flight balance check
+- Per-token faucet with "Claim All" batch button
+- Paste-an-address decrypt with registry picker shortcut
+- WrongNetworkBanner with one-click switch to Sepolia
+- Transaction state machine: pending → success (explorer link) → error, inline + toast
+- Skeleton loading states on all async data
+- Mobile-responsive nav with drawer
+
+### Code quality
+
+- TypeScript strict mode across all 3 packages
+- `TxState` discriminated union for all transaction lifecycle
+- EIP-55 address validation on every user input
+- `humanizeError` covers 20+ error patterns (SDK, wallet, network, relayer)
+- Error boundary with humanized messages
+- No debug console output in production
+- SSR-safe: Zama SDK assembled only in client providers
+
+### Production readiness
+
+- Zero-config Sepolia: public relayer, no API keys needed
+- COOP/COEP headers for FHE WASM SharedArrayBuffer
+- Vercel deployment with auto-detected monorepo workspace
+- CI pipeline: typecheck + build on push/PR to main
+
+---
+
+## Current status
+
+**Implemented and working:**
+- On-chain Wrappers Registry reader with local config + UI pair merge
+- Sepolia faucet with per-token mint and "Claim All" batch
+- Wrap (shield) and unwrap (unshield) with auto-approve
+- EIP-712 permit-based decrypt for any ERC-7984 (registry or arbitrary address)
+- Transaction state machine with inline explorer links + toast feedback
+- WrongNetworkBanner with one-click Sepolia switch
+- Three-path pair addition (browser UI, CLI, manual JSON) with shared validation
+- COOP/COEP headers for FHE WASM
+- CI pipeline (typecheck + build)
+- Zero-config on Sepolia (no API keys)
+
+**Not in scope for this submission:**
+- Mainnet support (FHEVM contracts require Zama's coprocessor, not available via standard RPCs)
+- Video demo (record before submission deadline)
+- X thread (publish before submission deadline)
 
 ---
 
 ## What's next
 
-- Live demo video (X/Loom) for the submission
 - Additional wrapper pairs as the Protocol DAO registers them
 - Batch decrypt (multiple tokens in one permit)
 

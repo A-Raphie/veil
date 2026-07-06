@@ -7,8 +7,6 @@ export function humanizeError(err: unknown): string {
   const msg = getErrorMessage(err);
 
   // Log the full error for debugging (visible in browser console)
-  console.error("[humanizeError]", err);
-
   // Wallet / user actions
   if (/user rejected|user denied|transaction rejected/i.test(msg))
     return "Transaction rejected in wallet";

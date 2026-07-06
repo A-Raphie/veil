@@ -31,19 +31,6 @@ export default function FaucetPage() {
   const allPairs = NETWORKS[network].pairs;
   const faucetable = allPairs.filter((p) => p.faucetable);
 
-  if (network === "mainnet") {
-    return (
-      <section className="py-[45px]">
-        <div className="mx-auto max-w-xl text-center space-y-4">
-          <h1 className="text-2xl font-semibold tracking-tight">Sepolia Faucet</h1>
-          <p className="text-sm text-slate-400">
-            The faucet is only available on Sepolia. Switch your wallet to Sepolia to claim test tokens.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-5xl space-y-6 py-[45px]">
       <Header />

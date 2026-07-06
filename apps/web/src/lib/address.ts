@@ -17,9 +17,7 @@ export function checkAddress(raw: string): AddressCheck {
   const trimmed = raw.trim();
   if (!trimmed) return { ok: false, reason: "empty" };
   if (trimmed.length < 42) return { ok: false, reason: "too-short" };
-  if (trimmed.length > 42 && !trimmed.startsWith("0x")) {
-    return { ok: false, reason: "malformed" };
-  }
+  if (trimmed.length > 42) return { ok: false, reason: "too-long" };
   if (!isAddress(trimmed)) {
     return { ok: false, reason: "malformed" };
   }
@@ -37,9 +35,4 @@ export function addressErrorReason(reason: Exclude<AddressCheck, { ok: true }>["
     case "malformed":
       return "That doesn't look like a valid Ethereum address.";
   }
-}
-
-/** True if the string is a syntactically valid address (for live "go" enabling). */
-export function isValidAddress(raw: string): boolean {
-  return checkAddress(raw).ok;
 }

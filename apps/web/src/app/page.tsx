@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Landing — hero + how-it-works + proof strip + the live registry grid.
+ * Veil landing — 7 sections matching the winsznx structural bar:
+ * Hero → Problem → How it works → Inspect → The Stack → Registry → Footer
  */
 
 import { Hero } from "@/components/hero";
@@ -15,7 +16,7 @@ import { useActiveNetwork } from "@/lib/use-active-network";
 import { shortAddr, explorerAddressUrl } from "@/lib/format";
 import { NETWORKS } from "@wrapper-registry/contracts";
 import { Copy } from "@/components/copy";
-import { Sparkles, ShieldCheck, ShieldOff, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye } from "lucide-react";
+import { Sparkles, ShieldCheck, ShieldOff, FileWarning, ArrowRight, Layers, Lock, GitBranch, AlertTriangle, Eye, Cpu, KeyRound, Network } from "lucide-react";
 import Link from "next/link";
 
 export default function RegistryPage() {
@@ -24,41 +25,19 @@ export default function RegistryPage() {
       <Hero />
       <ProblemSection />
       <HowItWorks />
-      <Manifesto />
       <WrapperInspector />
-      <BuiltFor />
-      <ProofStrip />
-      <RiskSection />
+      <TheStack />
       <RegistrySection />
     </div>
   );
 }
 
-/** The competitive one-liner — "category creation" move judges reward. */
-function Manifesto() {
-  return (
-    <section className="border-y bg-black/20 py-14">
-      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
-        <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
-          03 — Why
-        </p>
-        <p className="mt-4 max-w-3xl text-balance text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
-          Everyone built confidential tokens.{" "}
-          <span className="text-slate-500">
-            Nobody built the registry that makes them usable.
-          </span>
-        </p>
-        <p className="mt-4 max-w-xl text-sm text-slate-400">
-          Veil turns Zama&apos;s on-chain registry into a product anyone can
-          use — browse, wrap, decrypt, extend.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/** Problem section — why confidential tokens need a registry. */
+/** Problem section — merged with the manifesto one-liner as heading. */
 function ProblemSection() {
+  const { network } = useActiveNetwork();
+  const { data: pairs } = useRegistryPairs(network);
+  const pairCount = pairs?.length?.toString() ?? "…";
+
   const problems = [
     {
       icon: Layers,
@@ -74,7 +53,7 @@ function ProblemSection() {
     },
     {
       icon: AlertTriangle,
-      stat: "9",
+      stat: pairCount,
       label: "official pairs",
       description: "Every official pair exists on-chain. None of them walk you through the process.",
     },
@@ -86,9 +65,9 @@ function ProblemSection() {
         <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
           01 — The Problem
         </p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight">
-          Confidential tokens exist.{" "}
-          <span className="text-slate-500">Usable infrastructure doesn&apos;t.</span>
+        <h2 className="mt-2 text-balance text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
+          Everyone built confidential tokens.{" "}
+          <span className="text-slate-500">Nobody built the registry that makes them usable.</span>
         </h2>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {problems.map((p) => (
@@ -111,23 +90,32 @@ function ProblemSection() {
   );
 }
 
-/** Built for — who the product serves (no fake testimonials). */
-function BuiltFor() {
-  const personas = [
+/** The Stack — mechanism deep-dive (winsznx's signature section). */
+function TheStack() {
+  const layers = [
     {
-      icon: Eye,
-      title: "For Developers",
-      description: "Paste any ERC-7984 wrapper. Inspect public metadata + ciphertext handles. No wallet required.",
+      icon: Cpu,
+      name: "FHEVM",
+      role: "Encrypted EVM state",
+      detail: "Balances stored as ciphertext on-chain. Arithmetic (add, sub, compare) runs on encrypted values via the Coprocessor — plaintext never touches storage.",
     },
     {
-      icon: Lock,
-      title: "For Users",
-      description: "Claim test tokens, wrap them into ciphertext, decrypt your balance, all in one place.",
+      icon: Layers,
+      name: "ERC-7984",
+      role: "Confidential token standard",
+      detail: "The wrapper standard. Every ERC-20 has a confidential twin with an encrypted balance. Wrap converts plaintext → ciphertext; unwrap reverses it.",
     },
     {
-      icon: ShieldCheck,
-      title: "For Auditors",
-      description: "Every pair sourced from the on-chain registry. See which are Zama-verified and which are locally registered.",
+      icon: KeyRound,
+      name: "EIP-712 Permit",
+      role: "User-decryption flow",
+      detail: "To read your own balance, you sign a one-time typed message. The KMS threshold-signs a re-encryption key. Only your browser sees the plaintext — never the contract, never the relayer.",
+    },
+    {
+      icon: Network,
+      name: "Relayer + Gateway",
+      role: "FHE orchestration",
+      detail: "The relayer handles proof generation, public decryption, and key distribution. Open and keyless on Sepolia — no API key needed for the bounty flow.",
     },
   ];
 
@@ -135,94 +123,27 @@ function BuiltFor() {
     <section className="border-y bg-black/20 py-14">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
-          05 — Built for
+          04 — The Stack
         </p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">
-          Developers, users, and auditors.
+          How it works under the hood.
         </h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {personas.map((p) => (
-            <div key={p.title} className="card">
+        <p className="mt-1 max-w-xl text-sm text-slate-400">
+          Four layers, each doing one job. Veil orchestrates them through the
+          @zama-fhe/sdk so you never touch the cryptography directly.
+        </p>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {layers.map((l, i) => (
+            <div key={l.name} className="card">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg border bg-black/30 text-brand-400">
-                  <p.icon className="h-4 w-4" />
+                  <l.icon className="h-4 w-4" />
                 </span>
-                <h3 className="font-medium">{p.title}</h3>
+                <span className="mono text-xs text-slate-500">L{i + 1}</span>
               </div>
-              <p className="mt-3 text-sm text-slate-400">{p.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** Risk section — transparency about limitations. */
-function RiskSection() {
-  const { network } = useActiveNetwork();
-  const networkLabel = network === "mainnet" ? "Ethereum mainnet" : "Sepolia testnet";
-
-  return (
-    <section className="border-y bg-black/20 py-14">
-      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
-        <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
-          06 — Risk & Limitations
-        </p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight">
-          We publish everything that can go wrong.
-        </h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="card">
-            <p className="text-xs text-slate-500">Network</p>
-            <p className="mt-1 text-sm font-medium text-amber-300">{networkLabel}</p>
-            <p className="mt-1 text-xs text-slate-400">{network === "mainnet" ? "Mainnet tokens have real value. Wrap with caution." : "All tokens are test mocks with no real value."}</p>
-          </div>
-          <div className="card">
-            <p className="text-xs text-slate-500">Encryption cost</p>
-            <p className="mt-1 text-sm font-medium text-amber-300">FHE is computationally expensive</p>
-            <p className="mt-1 text-xs text-slate-400">Wrap/unwrap transactions cost more gas than plain ERC-20 transfers due to FHE operations.</p>
-          </div>
-          <div className="card">
-            <p className="text-xs text-slate-500">Decryption</p>
-            <p className="mt-1 text-sm font-medium text-amber-300">Requires on-chain proof</p>
-            <p className="mt-1 text-xs text-slate-400">Decrypting a balance requires an EIP-712 permit signature and an on-chain verification transaction.</p>
-          </div>
-          <div className="card">
-            <p className="text-xs text-slate-500">Registry</p>
-            <p className="mt-1 text-sm font-medium text-amber-300">Permissionless pairs</p>
-            <p className="mt-1 text-xs text-slate-400">Anyone can register a wrapper pair on-chain. Veil surfaces source tags to distinguish official vs local pairs.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** Compact proof/stats strip — credibility cues (standard, networks, pairs). */
-function ProofStrip() {
-  const { network } = useActiveNetwork();
-  const { data: pairs } = useRegistryPairs(network);
-
-  const stats = [
-    { icon: Layers, label: "Pairs live", value: pairs?.length?.toString() ?? "—" },
-    { icon: GitBranch, label: "Network", value: network === "mainnet" ? "Mainnet" : "Sepolia" },
-    { icon: Lock, label: "Standard", value: "ERC-7984" },
-  ];
-
-  return (
-    <section className="border-y bg-black/20">
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {stats.map((s) => (
-            <div key={s.label} className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg border bg-black/30 text-brand-400">
-                <s.icon className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-xs text-slate-500">{s.label}</p>
-                <p className="text-sm font-medium">{s.value}</p>
-              </div>
+              <h3 className="mt-4 font-medium">{l.name}</h3>
+              <p className="text-xs text-brand-300">{l.role}</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">{l.detail}</p>
             </div>
           ))}
         </div>
@@ -272,7 +193,7 @@ function RegistrySection() {
 
       {!isConnected && (
         <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-amber-200/80">
-          Connect a wallet on {network === "mainnet" ? "mainnet" : "Sepolia"} to transact. Browsing the registry needs no wallet.
+          Connect a wallet on Sepolia to transact. Browsing the registry needs no wallet.
         </p>
       )}
 

@@ -111,23 +111,25 @@ function DecryptCard({ token }: { token: Address }) {
   const pair = pairs?.find((p) => p.confidentialToken.toLowerCase() === token.toLowerCase());
   const decimals = pair?.decimals ?? 6;
 
-  // Detect whether the pasted address is actually an ERC-7984 wrapper via
-  // supportsInterface(0x4958f2a4). Gives a clear error BEFORE the permit flow.
-  const { data: isErc7984, isLoading: checkingInterface } = useReadContract({
+  // Detect whether the pasted address is a valid ERC-7984 wrapper.
+  // supportsInterface() reverts on Zama FHEVM wrappers (FHE ACL-gated), so we
+  // check via name() — if the contract responds, it's a valid token contract.
+  const { data: tokenName, isLoading: checkingInterface } = useReadContract({
     address: token,
     abi: [
       {
         type: "function",
-        name: "supportsInterface",
+        name: "name",
         stateMutability: "view",
-        inputs: [{ name: "interfaceId", type: "bytes4" }],
-        outputs: [{ name: "", type: "bool" }],
+        inputs: [],
+        outputs: [{ name: "", type: "string" }],
       },
     ] as const,
-    functionName: "supportsInterface",
-    args: ["0x4958f2a4"],
+    functionName: "name",
     query: { enabled: !!token },
   });
+  // isErc7984 = true if name() returned a non-empty string (valid contract)
+  const isErc7984 = tokenName !== undefined && tokenName !== null;
 
   const { data: hasPermit, isLoading: checkingPermit } = useHasPermit({
     contractAddresses: [token],
@@ -164,14 +166,14 @@ function DecryptCard({ token }: { token: Address }) {
         </span>
       </div>
 
-      {/* Interface detection — reject non-ERC-7984 contracts up front. */}
+      {/* Contract validation — reject non-token contracts up front. */}
       {checkingInterface && (
-        <p className="text-xs text-slate-500">Checking ERC-7984 interface…</p>
+        <p className="text-xs text-slate-500">Checking contract…</p>
       )}
       {isErc7984 === false && (
-        <Alert variant="error" title="Not an ERC-7984 wrapper">
-          This contract doesn&apos;t implement the ERC-7984 interface
-          (<span className="mono">0x4958f2a4</span>). Decryption only works on confidential
+        <Alert variant="error" title="Not a confidential token">
+          No valid contract found at this address, or it doesn&apos;t expose
+          token metadata. Decryption only works on confidential
           wrapper tokens.
         </Alert>
       )}

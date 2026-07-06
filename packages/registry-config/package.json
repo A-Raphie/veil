@@ -11,6 +11,7 @@
     "./local": "./pairs.local.json"
   },
   "scripts": {
+    "prepare": "test -f pairs.local.json || cp pairs.local.example.json pairs.local.json",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

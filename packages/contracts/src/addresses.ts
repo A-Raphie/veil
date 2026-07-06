@@ -214,6 +214,3 @@ export const NETWORKS: Record<NetworkKey, NetworkAddresses> = {
 
 /** Per-call mint cap on the cTokenMock underlying ERC-20s (1,000,000 units). */
 export const FAUCET_MINT_AMOUNT = 1_000_000n;
-
-/** Default gas margin multiplier for FHE transactions (they can be heavier). */
-export const DEFAULT_GAS_MULTIPLIER = 1.3;

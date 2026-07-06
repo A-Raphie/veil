@@ -40,7 +40,7 @@ export function WrapperInspector() {
     <section className="py-14">
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6">
         <p className="mono text-xs uppercase tracking-[0.18em] text-brand-400">
-          04 — Inspect
+          03 — Inspect
         </p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">
           Inspect any wrapper.{" "}
@@ -112,12 +112,13 @@ function InspectorResult({ address }: { address: Address }) {
     address, abi: wrapperAbi, functionName: "underlying", query: { enabled: !!address },
   });
 
-  // --- ERC-7984 interface check ---
+  // --- Valid contract check ---
+  // supportsInterface() reverts on Zama FHEVM wrappers (FHE ACL-gated), so we
+  // check via name() instead. If name() responds, it's a valid token contract.
   const { data: isErc7984, isLoading: checkingInterface } = useReadContract({
     address,
-    abi: [{ type: "function", name: "supportsInterface", stateMutability: "view", inputs: [{ name: "interfaceId", type: "bytes4" }], outputs: [{ name: "", type: "bool" }] }] as const,
-    functionName: "supportsInterface",
-    args: ["0x4958f2a4"],
+    abi: [{ type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] }] as const,
+    functionName: "name",
     query: { enabled: !!address },
   });
 
@@ -169,17 +170,18 @@ function InspectorResult({ address }: { address: Address }) {
         </a>
       </div>
 
-      {/* Not ERC-7984 → clear error, stop here */}
-      {isErc7984 === false && (
+      {/* Not a valid token contract → clear error, stop here. isErc7984 is the
+          name() return; undefined = call failed/not yet loaded, string = valid. */}
+      {!checkingInterface && isErc7984 === undefined && (
         <Alert variant="error" title="Not a confidential wrapper">
-          This contract doesn&apos;t implement the ERC-7984 interface
-          (<span className="mono">0x4958f2a4</span>). It may be a regular ERC-20
-          or an unrelated contract.
+          No valid contract found at this address, or it doesn&apos;t expose
+          token metadata (<span className="mono">name()</span>). It may be an
+          EOA, a regular ERC-20, or an unrelated contract.
         </Alert>
       )}
 
-      {/* Metadata grid — only if it's ERC-7984 */}
-      {isErc7984 !== false && (
+      {/* Metadata grid — only if it's a valid contract */}
+      {isErc7984 !== undefined && (
         <>
           <dl className="grid gap-3 sm:grid-cols-2">
             {/* PUBLIC fields */}

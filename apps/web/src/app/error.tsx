@@ -17,8 +17,9 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Surface to the operator console; in prod this is where you'd ship to Sentry.
-    console.error("[veil] route error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[veil] route error:", error);
+    }
   }, [error]);
 
   return (

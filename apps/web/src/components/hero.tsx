@@ -12,16 +12,14 @@
  */
 
 import Link from "next/link";
-import { ArrowRight, Droplets, Lock, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowRight, Droplets, Lock, Sparkles } from "lucide-react";
 import { useReadContract } from "wagmi";
 import { NETWORKS, wrapperAbi } from "@wrapper-registry/contracts";
 import { useActiveNetwork } from "@/lib/use-active-network";
 import { useRegistryPairs } from "@/lib/registry";
-import { shortAddr, explorerAddressUrl } from "@/lib/format";
 
 export function Hero() {
   const { network } = useActiveNetwork();
-  const registry = NETWORKS[network].registry;
 
   return (
     <section className="relative overflow-hidden border-b py-16 md:py-24">
@@ -52,18 +50,6 @@ export function Hero() {
             <Link href="/faucet" className="btn-secondary">
               <Droplets className="h-4 w-4" /> Claim test tokens
             </Link>
-          </div>
-          {/* Contract address surfaced prominently — answers "is this deployed?" immediately */}
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-500">Registry contract:</span>
-            <a
-              href={explorerAddressUrl(network, registry)}
-              className="mono inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-2 py-1 text-slate-200 underline decoration-dotted hover:border-brand-500/40 hover:text-white"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {shortAddr(registry)} <ExternalLink className="h-3 w-3" />
-            </a>
           </div>
         </div>
 
@@ -167,10 +153,6 @@ function HeroPanel() {
             Real on-chain value — FHE-encrypted, unreadable without a permit.
           </p>
         </div>
-
-        <Link href="#registry" className="btn-primary w-full">
-          Browse the registry <ArrowRight className="h-4 w-4" />
-        </Link>
       </div>
     </div>
   );

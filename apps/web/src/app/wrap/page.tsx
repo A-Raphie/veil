@@ -51,15 +51,14 @@ export default function WrapPage() {
 }
 
 function WrapPageInner() {
-  const { isConnected } = useActiveNetwork();
-  const { network } = useActiveNetwork();
+  const { isConnected, network } = useActiveNetwork();
   const { data: pairs, isLoading, isError, refetch } = useRegistryPairs(network);
 
   return (
     <>
       {!isConnected && (
         <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-950/20 px-4 py-2 text-xs text-center text-amber-200/80">
-          Connect a wallet on {network === "mainnet" ? "mainnet" : "Sepolia"} to wrap or unwrap.
+          Connect a wallet on Sepolia to wrap or unwrap.
         </p>
       )}
 
@@ -136,7 +135,6 @@ function PairWrapCard({ pair }: { pair: UnifiedPair }) {
       pushToast("error", "Enter a valid amount");
       return;
     }
-    console.log("[wrap] underlyingBalance:", underlyingBalance?.toString(), "parsedAmount:", parsedAmount.toString());
     if (underlyingBalance !== undefined && parsedAmount > (underlyingBalance as bigint)) {
       setTx({ kind: "error", message: "Insufficient balance — you don't have enough tokens" });
       return;
