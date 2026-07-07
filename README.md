@@ -3,7 +3,7 @@
 > **Encrypted by default. Yours to reveal.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/raphie/veil/ci.yml?label=CI)](https://github.com/raphie/veil/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/A-Raphie/veil/ci.yml?label=CI)](https://github.com/A-Raphie/veil/actions)
 [![Sepolia](https://img.shields.io/badge/Network-Sepolia-orange)](https://sepolia.etherscan.io/address/0x2f0750Bbb0A246059d80e94c454586a7F27a128e)
 [![FHEVM](https://img.shields.io/badge/Zama-FHEVM-black)](https://github.com/zama-ai/fhevm)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org)
