@@ -40,8 +40,8 @@ Built on **Zama FHEVM** with `@zama-fhe/sdk` v3. Runs on **Sepolia**.
 
 - **dApp:** https://veil-registry.vercel.app
 - **GitHub:** https://github.com/A-Raphie/veil
-- **Video demo:** _\<add your X/Loom link\>_
-- **X article:** _\<add your X article link\>_
+- **Video demo:** https://x.com/A_raphie/status/2074401773465256322
+- **X article:** https://x.com/A_raphie/status/2074401773465256322
 - **Network:** Sepolia (11155111)
 
 ---
